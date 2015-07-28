@@ -229,6 +229,11 @@ private:
 	 */
 	void set_mission_finished();
 
+	/**
+	 * Check wether a mission is ready to go
+	 */
+	bool check_mission_valid();
+
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
