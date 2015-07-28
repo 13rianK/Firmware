@@ -883,6 +883,7 @@ int commander_thread_main(int argc, char *argv[])
 	main_states_str[vehicle_status_s::MAIN_STATE_ACRO]			= "ACRO";
 	main_states_str[vehicle_status_s::MAIN_STATE_STAB]			= "STAB";
 	main_states_str[vehicle_status_s::MAIN_STATE_OFFBOARD]			= "OFFBOARD";
+	main_states_str[vehicle_status_s::MAIN_STATE_DELIVERY]		= "DELIVERY";
 
 	const char *arming_states_str[vehicle_status_s::ARMING_STATE_MAX];
 	arming_states_str[vehicle_status_s::ARMING_STATE_INIT]			= "INIT";
@@ -910,6 +911,7 @@ int commander_thread_main(int argc, char *argv[])
 	nav_states_str[vehicle_status_s::NAVIGATION_STATE_DESCEND]		= "DESCEND";
 	nav_states_str[vehicle_status_s::NAVIGATION_STATE_TERMINATION]		= "TERMINATION";
 	nav_states_str[vehicle_status_s::NAVIGATION_STATE_OFFBOARD]		= "OFFBOARD";
+	nav_states_str[vehicle_status_s::NAVIGATION_STATE_DELIVERY]		= "DELIVERY";
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -2390,6 +2392,21 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 			return res;
 		}
 
+	} else if (sp_man->return_switch == manual_control_setpoint_s::SWITCH_POS_MIDDLE) {
+		res = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_DELIVERY);
+
+		if (res == TRANSITION_DENIED) {
+			print_reject_mode(status_local, "AUTO_DELIVERY");
+
+			/* fallback to LOITER if home position not set */
+			res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_AUTO_LOITER);
+		}
+
+		if (res != TRANSITION_DENIED) {
+			/* changed successfully or already in this state */
+			return res;
+		}
+
 		/* if we get here mode was rejected, continue to evaluate the main system mode */
 	}
 
@@ -2563,6 +2580,7 @@ set_control_mode()
 		/* override is not ok for the RTL and recovery mode */
 		control_mode.flag_external_manual_override_ok = false;
 		/* fallthrough */
+	case vehicle_status_s::NAVIGATION_STATE_DELIVERY:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:

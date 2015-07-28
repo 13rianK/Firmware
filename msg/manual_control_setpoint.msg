@@ -37,7 +37,7 @@ float32 aux4			 # default function: camera roll
 float32 aux5			 # default function: payload drop
 
 uint8 mode_switch		 # main mode 3 position switch (mandatory): _MANUAL_, ASSIST, AUTO
-uint8 return_switch		 # return to launch 2 position switch (mandatory): _NORMAL_, RTL
+uint8 return_switch		 # return to launch 3 position switch (mandatory): _NORMAL_, DELIVERY, RTL
 uint8 posctl_switch		 # position control 2 position switch (optional): _ALTCTL_, POSCTL
 uint8 loiter_switch		 # loiter 2 position switch (optional): _MISSION_, LOITER
 uint8 acro_switch		 # acro 2 position switch (optional): _MANUAL_, ACRO

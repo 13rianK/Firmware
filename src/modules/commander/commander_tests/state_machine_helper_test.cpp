@@ -361,7 +361,15 @@ bool StateMachineHelperTest::mainStateTransitionTest(void)
 			MTT_GLOBAL_POS_VALID | MTT_HOME_POS_VALID,
 			vehicle_status_s::MAIN_STATE_AUTO_RTL, vehicle_status_s::MAIN_STATE_MANUAL, TRANSITION_CHANGED },
 
-		{ "transition: MANUAL to ALTCTL - not rotary",
+		{ "transition: MANUAL to DELIVERY - global position valid, home position valid",
+            MTT_GLOBAL_POS_VALID | MTT_HOME_POS_VALID,
+            vehicle_status_s::MAIN_STATE_MANUAL, vehicle_status_s::MAIN_STATE_DELIVERY, TRANSITION_CHANGED },
+
+        { "transition: DELIVERY to MANUAL - global position valid, home position valid",
+            MTT_GLOBAL_POS_VALID | MTT_HOME_POS_VALID,
+            vehicle_status_s::MAIN_STATE_DELIVERY, vehicle_status_s::MAIN_STATE_MANUAL, TRANSITION_CHANGED },
+
+        { "transition: MANUAL to ALTCTL - not rotary",
 			MTT_ALL_NOT_VALID,
 			vehicle_status_s::MAIN_STATE_MANUAL, vehicle_status_s::MAIN_STATE_ALTCTL, TRANSITION_CHANGED },
 
@@ -411,7 +419,15 @@ bool StateMachineHelperTest::mainStateTransitionTest(void)
 			MTT_GLOBAL_POS_VALID,
 			vehicle_status_s::MAIN_STATE_MANUAL, vehicle_status_s::MAIN_STATE_AUTO_RTL, TRANSITION_DENIED },
 
-		{ "no transition: MANUAL to ALTCTL - rotary, global position not valid, local altitude not valid",
+		{ "no transition: MANUAL to DELIVERY - global position not valid, home position valid",
+            MTT_HOME_POS_VALID,
+            vehicle_status_s::MAIN_STATE_MANUAL, vehicle_status_s::MAIN_STATE_DELIVERY, TRANSITION_DENIED },
+
+        { "no transition: MANUAL to DELIVERY - global position valid, home position not valid",
+            MTT_GLOBAL_POS_VALID,
+            vehicle_status_s::MAIN_STATE_MANUAL, vehicle_status_s::MAIN_STATE_DELIVERY, TRANSITION_DENIED },
+
+        { "no transition: MANUAL to ALTCTL - rotary, global position not valid, local altitude not valid",
 			MTT_ROTARY_WING,
 			vehicle_status_s::MAIN_STATE_MANUAL, vehicle_status_s::MAIN_STATE_ALTCTL, TRANSITION_DENIED },
 
