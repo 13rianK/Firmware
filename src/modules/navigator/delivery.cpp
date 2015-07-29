@@ -76,7 +76,8 @@ Delivery::Delivery(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	mavlink_fd(0),
 	_complete(false),
-	_drop_alt(5.0),
+	_first_run(false),
+	_drop_alt(8.0),
 	// safety({0}),
 	// status({0}),
 	// armed({0}),
@@ -168,32 +169,35 @@ Delivery::on_activation()
 	// check conditions and acquire needed GPS info
 	delivery_status = DELIV_PREFLIGHT;
 
+	_first_run = true;
+
 	_rtl_state = RTL_STATE_CLIMB;
 }
 
 void
 Delivery::on_active()
 {
+	if (_first_run) {
+		set_delivery_items();
+	}
+
 	//check for delivery_status and run through delivery routine
 	switch(delivery_status){
 		case DELIV_PREFLIGHT:
-			set_delivery_items();
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk Prepared for Flight");
+			_first_run = true;
 			advance_delivery();
 			break;
 		case DELIV_ENROUTE:
-			set_delivery_items();
 			to_destination();
 			break;
 		case DELIV_DROPOFF:
-			set_delivery_items();
 			activate_gripper();
 			break;
 		case DELIV_RETURN:
-			set_delivery_items();
 			return_home();
 			break;
 		case DELIV_DISARM:
-			set_delivery_items();
 			shutoff();
 			break;
 		case DELIV_COMPLETE:
@@ -255,14 +259,11 @@ Delivery::to_destination()
 		heading_sp_update();
 	}
 
-	if (is_mission_item_reached()) {
-		_complete = true;
-	}
-
 	if (_complete) {
-		// Update status now that travel to destination is complete
+		// Update status now that travel to destination is complete and reset _first_run for next stage
+		_first_run = true;
 		advance_delivery();
-		mavlink_log_critical(mavlink_fd, "Black Hawk at Location");
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk at Location");
 	}
 }
 
@@ -281,9 +282,10 @@ Delivery::activate_gripper()
 		//Drop the item by activating the servo
 		unload_package();
 
-		// Update status now that dropoff is complete
+		// Update status now that dropoff is complete and reset _first run for next stage
+		_first_run = true;
 		advance_delivery();
-		mavlink_log_critical(mavlink_fd, "The Eagle Has Landed");
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "The Eagle Has Landed");
 	}
 }
 
@@ -306,7 +308,7 @@ Delivery::return_home()
 	if (_complete) {
 		// Update Status now that return is complete
 		advance_delivery();
-		mavlink_log_critical(mavlink_fd, "Black Hawk Has Nested");
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk Has Nested");
 	}
 }
 
@@ -323,7 +325,7 @@ Delivery::shutoff()
 
 	// Update status now that the copter is disarmed
 	advance_delivery();
-	mavlink_log_critical(mavlink_fd, "Black Hawk Sleeping");
+	mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk Sleeping");
 }
 
 void
@@ -392,8 +394,10 @@ Delivery::set_delivery_items()
 		}
 
 		set_rtl_item();
+
 	}
 
+	_first_run = false;
 	_complete = false;
 }
 

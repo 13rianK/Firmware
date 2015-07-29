@@ -148,6 +148,7 @@ private:
 	/* Mavlink file descriptor */
 	int mavlink_fd;
 	bool _complete;
+	bool _first_run;
 	float _drop_alt;
 	struct safety_s safety;
 	struct vehicle_status_s status;
