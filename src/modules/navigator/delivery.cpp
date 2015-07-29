@@ -186,25 +186,21 @@ Delivery::on_active()
 		set_delivery_items();
 	}
 
-	mavlink_log_critical(_navigator->get_mavlink_fd(), "%s", delivery_status);
+	mavlink_log_critical(_navigator->get_mavlink_fd(), "...");
 
 	//check for delivery_status and run through delivery routine
 	switch(delivery_status){
 		case DELIV_PREFLIGHT:
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk Prepared for Flight");
 			_first_run = true;
 			advance_delivery();
 			break;
 		case DELIV_ENROUTE:
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk is starting mission");
 			to_destination();
 			break;
 		case DELIV_DROPOFF:
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk starting Dropoff");
 			activate_gripper();
 			break;
 		case DELIV_RETURN:
-			mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk starting return");
 			return_home();
 			break;
 		case DELIV_DISARM:
@@ -222,11 +218,11 @@ Delivery::to_destination()
 	// set a mission to destination with takeoff enabled
 	// Status = enroute ; change to Dropoff at completion
 
-	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
+	if (_complete) {
 		// Update status now that travel to destination is complete and reset _first_run for next stage
 		_first_run = true;
-		advance_delivery();
 		mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk at Location");
+		advance_delivery();
 		return;
 	}
 
@@ -288,14 +284,18 @@ Delivery::activate_gripper()
 	// the code for descent can be found in set_delivery_items
 
 	// keep descending until _drop_alt reached
-	if (is_mission_item_reached()) {
+	if (_navigator->get_mission_result()->reached || is_mission_item_reached()) {
+		_complete = true;
+	}
+
+	if (_complete) {
 		//Drop the item by activating the servo
 		unload_package();
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "Payload has been delivered");
 
-		// Update status now that dropoff is complete and reset _first run for next stage
+		// Update status now that dropoff is complete and reset _first_run for next stage
 		_first_run = true;
 		advance_delivery();
-		mavlink_log_critical(_navigator->get_mavlink_fd(), "Payload has been delivered");
 	}
 }
 
@@ -634,6 +634,7 @@ Delivery::set_mission_items()
 			/* https://en.wikipedia.org/wiki/Loiter_(aeronautics) */
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished, loitering");
 			user_feedback_done = true;
+			_complete = true;
 
 			/* use last setpoint for loiter */
 			_navigator->set_can_loiter_at_sp(true);
@@ -654,6 +655,7 @@ Delivery::set_mission_items()
 		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
 
 		set_mission_finished();
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "mission finished");
 
 		if (!user_feedback_done) {
 			/* only tell users that we got no mission if there has not been any
