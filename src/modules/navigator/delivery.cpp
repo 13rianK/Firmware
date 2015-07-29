@@ -64,6 +64,7 @@
 #include <uORB/topics/mission_result.h>
 
 #include <commander/state_machine_helper.h>
+#include <commander/commander_helper.h>
 
 #include <mavlink/mavlink_log.h>
 
@@ -276,16 +277,14 @@ Delivery::activate_gripper()
 	// the code for descent can be found in set_delivery_items
 
 	// keep descending until _drop_alt reached
-	_complete = is_mission_item_reached();
-
-	if (_complete) {
+	if (is_mission_item_reached()) {
 		//Drop the item by activating the servo
 		unload_package();
 
 		// Update status now that dropoff is complete and reset _first run for next stage
 		_first_run = true;
 		advance_delivery();
-		mavlink_log_critical(_navigator->get_mavlink_fd(), "The Eagle Has Landed");
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "Payload has been delivered");
 	}
 }
 
@@ -302,10 +301,6 @@ Delivery::return_home()
 	}
 
 	if (_rtl_state == RTL_STATE_LANDED) {
-		_complete = true;
-	}
-
-	if (_complete) {
 		// Update Status now that return is complete
 		advance_delivery();
 		mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk Has Nested");
@@ -317,11 +312,13 @@ Delivery::shutoff()
 {
 	// Disarm the drone when it is done with the landing
 	// look at commander 380
-			// if (_navigator->get_vstatus()->condition_landed) {
-			// 	int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
-			// 	arm_disarm(false, mavlink_fd_local, "Delivery.cpp");
-			// 	px4_close(mavlink_fd_local);
-			// }	
+	// if (_rtl_state == RTL_STATE_LANDED) {
+		// if (_navigator->get_vstatus()->condition_landed) {
+		// 	int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
+		// 	arm_disarm(false, mavlink_fd_local, "Delivery.cpp");
+		// 	px4_close(mavlink_fd_local);
+		// }	
+	//}
 
 	// Update status now that the copter is disarmed
 	advance_delivery();
@@ -363,7 +360,7 @@ Delivery::set_delivery_items()
 		_mission_item.autocontinue = false;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
-		mavlink_log_critical(_navigator->get_mavlink_fd(), "RTL: descend to %d m (%d m above home)",
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "DELIVERY: descend to %d m (%d m above home)",
 		(int)(_mission_item.altitude),
 		(int)(_mission_item.altitude - _navigator->get_home_position()->alt));
 
@@ -415,6 +412,7 @@ Delivery::arm_disarm(bool arm, const int mavlink_fd_local, const char *armedBy)
 	// 	mavlink_log_info(mavlink_fd_local, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
 
 	// } else if (arming_res == TRANSITION_DENIED) {
+	//	tune_negative(true);
 	// 	mavlink_log_critical(mavlink_fd, "Cannot Disarm");
 	// }
 }
@@ -1051,6 +1049,7 @@ Delivery::set_mission_finished()
 {
 	_navigator->get_mission_result()->finished = true;
 	_navigator->set_mission_result_updated();
+	_complete = true;
 }
 
 bool
