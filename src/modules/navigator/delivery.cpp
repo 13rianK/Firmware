@@ -38,7 +38,7 @@
  * @author Brian Krentz <brian.krentz@gmail.com>
  */
  
-#include <px4_posix.h>
+//#include <px4_posix.h>
 #include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
@@ -65,6 +65,7 @@
 #include <uORB/topics/mission_result.h>
 
 #include <commander/state_machine_helper.h>
+#include <commander/commander_helper.h>
 
 #include <mavlink/mavlink_log.h>
 
@@ -77,7 +78,8 @@ Delivery::Delivery(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	mavlink_fd(0),
 	_complete(false),
-	_drop_alt(5.0),
+	_first_run(false),
+	_drop_alt(8.0),
 	// safety({0}),
 	// status({0}),
 	// armed({0}),
@@ -133,36 +135,28 @@ Delivery::on_inactive()
 			update_offboard_mission();
 		}
 
-		/* check if the home position became valid in the meantime */
-		if ((_mission_type == MISSION_TYPE_NONE || _mission_type == MISSION_TYPE_OFFBOARD) &&
-			!_home_inited && _navigator->home_position_valid()) {
+	} else {
 
-			dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
+		/* load missions from storage */
+		mission_s mission_state;
 
-			_navigator->get_mission_result()->valid = _missionFeasiblityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), _navigator->get_vstatus()->is_rotary_wing,
-					dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
-					_navigator->get_home_position()->alt, _navigator->home_position_valid(),
-					_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-					_param_dist_1wp.get(), _navigator->get_mission_result()->warning);
+		dm_lock(DM_KEY_MISSION_STATE);
 
-			_navigator->increment_mission_instance_count();
-			_navigator->set_mission_result_updated();
+		/* read current state */
+		int read_res = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
 
-			_home_inited = true;
+		dm_unlock(DM_KEY_MISSION_STATE);
+
+		if (read_res == sizeof(mission_s)) {
+			_offboard_mission.dataman_id = mission_state.dataman_id;
+			_offboard_mission.count = mission_state.count;
+			_current_offboard_mission_index = mission_state.current_seq;
 		}
 
-	} else {
-		/* read mission topics on initialization */
 		_inited = true;
-
-		update_onboard_mission();
-		update_offboard_mission();
 	}
 
-	/* require takeoff after non-loiter or landing */
-	if (!_navigator->get_can_loiter_at_sp() || _navigator->get_vstatus()->condition_landed) {
-		_need_takeoff = true;
-	}
+	check_mission_valid();
 
 	/* reset RTL state only if setpoint moved */
 	if (!_navigator->get_can_loiter_at_sp()) {
@@ -177,32 +171,35 @@ Delivery::on_activation()
 	// check conditions and acquire needed GPS info
 	delivery_status = DELIV_PREFLIGHT;
 
+	_first_run = true;
+
 	_rtl_state = RTL_STATE_CLIMB;
 }
 
 void
 Delivery::on_active()
 {
+	if (_first_run) {
+		set_delivery_items();
+	}
+
 	//check for delivery_status and run through delivery routine
 	switch(delivery_status){
 		case DELIV_PREFLIGHT:
-			set_delivery_items();
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk Prepared for Flight");
+			_first_run = true;
 			advance_delivery();
 			break;
 		case DELIV_ENROUTE:
-			set_delivery_items();
 			to_destination();
 			break;
 		case DELIV_DROPOFF:
-			set_delivery_items();
 			activate_gripper();
 			break;
 		case DELIV_RETURN:
-			set_delivery_items();
 			return_home();
 			break;
 		case DELIV_DISARM:
-			set_delivery_items();
 			shutoff();
 			break;
 		case DELIV_COMPLETE:
@@ -217,7 +214,9 @@ Delivery::to_destination()
 	// set a mission to destination with takeoff enabled
 	// Status = enroute ; change to Dropoff at completion
 
-	/* check if missions have changed so that feedback to ground station is given */
+	check_mission_valid();
+
+	/* check if anything has changed */
 	bool onboard_updated = false;
 	orb_check(_navigator->get_onboard_mission_sub(), &onboard_updated);
 	if (onboard_updated) {
@@ -262,14 +261,11 @@ Delivery::to_destination()
 		heading_sp_update();
 	}
 
-	if (is_mission_item_reached()) {
-		_complete = true;
-	}
-
 	if (_complete) {
-		// Update status now that travel to destination is complete
+		// Update status now that travel to destination is complete and reset _first_run for next stage
+		_first_run = true;
 		advance_delivery();
-		mavlink_log_critical(mavlink_fd, "Black Hawk at Location");
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk at Location");
 	}
 }
 
@@ -282,15 +278,14 @@ Delivery::activate_gripper()
 	// the code for descent can be found in set_delivery_items
 
 	// keep descending until _drop_alt reached
-	_complete = is_mission_item_reached();
-
-	if (_complete) {
+	if (is_mission_item_reached()) {
 		//Drop the item by activating the servo
 		unload_package();
 
-		// Update status now that dropoff is complete
+		// Update status now that dropoff is complete and reset _first run for next stage
+		_first_run = true;
 		advance_delivery();
-		mavlink_log_critical(mavlink_fd, "The Eagle Has Landed");
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "Payload has been delivered");
 	}
 }
 
@@ -307,13 +302,9 @@ Delivery::return_home()
 	}
 
 	if (_rtl_state == RTL_STATE_LANDED) {
-		_complete = true;
-	}
-
-	if (_complete) {
 		// Update Status now that return is complete
 		advance_delivery();
-		mavlink_log_critical(mavlink_fd, "Black Hawk Has Nested");
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk Has Nested");
 	}
 }
 
@@ -322,15 +313,17 @@ Delivery::shutoff()
 {
 	// Disarm the drone when it is done with the landing
 	// look at commander 380
-			// if (_navigator->get_vstatus()->condition_landed) {
-			// 	int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
-			// 	arm_disarm(false, mavlink_fd_local, "Delivery.cpp");
-			// 	px4_close(mavlink_fd_local);
-			// }	
+	// if (_rtl_state == RTL_STATE_LANDED) {
+		// if (_navigator->get_vstatus()->condition_landed) {
+		// 	int mavlink_fd_local = px4_open(MAVLINK_LOG_DEVICE, 0);
+		// 	arm_disarm(false, mavlink_fd_local, "Delivery.cpp");
+		// 	px4_close(mavlink_fd_local);
+		// }	
+	//}
 
 	// Update status now that the copter is disarmed
 	advance_delivery();
-	mavlink_log_critical(mavlink_fd, "Black Hawk Sleeping");
+	mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk Sleeping");
 }
 
 void
@@ -368,7 +361,7 @@ Delivery::set_delivery_items()
 		_mission_item.autocontinue = false;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
-		mavlink_log_critical(_navigator->get_mavlink_fd(), "RTL: descend to %d m (%d m above home)",
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "DELIVERY: descend to %d m (%d m above home)",
 		(int)(_mission_item.altitude),
 		(int)(_mission_item.altitude - _navigator->get_home_position()->alt));
 
@@ -399,8 +392,10 @@ Delivery::set_delivery_items()
 		}
 
 		set_rtl_item();
+
 	}
 
+	_first_run = false;
 	_complete = false;
 }
 
@@ -418,6 +413,7 @@ Delivery::arm_disarm(bool arm, const int mavlink_fd_local, const char *armedBy)
 	// 	mavlink_log_info(mavlink_fd_local, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
 
 	// } else if (arming_res == TRANSITION_DENIED) {
+	//	tune_negative(true);
 	// 	mavlink_log_critical(mavlink_fd, "Cannot Disarm");
 	// }
 }
@@ -540,13 +536,15 @@ Delivery::update_offboard_mission()
 		_navigator->set_mission_result_updated();
 
 	} else {
-		PX4_WARN("offboard mission update failed, handle: %d", _navigator->get_offboard_mission_sub());
+		warnx("offboard mission update failed");
 	}
 
 	if (failed) {
 		_offboard_mission.count = 0;
 		_offboard_mission.current_seq = 0;
 		_current_offboard_mission_index = 0;
+
+		warnx("mission check failed");
 	}
 
 	set_current_offboard_mission_item();
@@ -794,7 +792,7 @@ Delivery::heading_sp_update()
 
 	/* Don't change setpoint if last and current waypoint are not valid */
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid ||
-			!PX4_ISFINITE(_on_arrival_yaw)) {
+			!isfinite(_on_arrival_yaw)) {
 		return;
 	}
 
@@ -842,7 +840,7 @@ Delivery::altitude_sp_foh_update()
 
 	/* Don't change setpoint if last and current waypoint are not valid */
 	if (!pos_sp_triplet->previous.valid || !pos_sp_triplet->current.valid ||
-			!PX4_ISFINITE(_mission_item_previous_alt)) {
+			!isfinite(_mission_item_previous_alt)) {
 		return;
 	}
 
@@ -927,6 +925,7 @@ Delivery::read_mission_item(bool onboard, bool is_current, struct mission_item_s
 
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
 			/* mission item index out of bounds */
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "[wpm] err: index: %d, max: %d", *mission_index_ptr, (int)mission->count);
 			return false;
 		}
 
@@ -1069,6 +1068,30 @@ Delivery::set_mission_finished()
 {
 	_navigator->get_mission_result()->finished = true;
 	_navigator->set_mission_result_updated();
+	_complete = true;
+}
+
+bool
+Delivery::check_mission_valid()
+{
+	/* check if the home position became valid in the meantime */
+	if (!_home_inited && _navigator->home_position_valid()) {
+
+		dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
+
+		_navigator->get_mission_result()->valid = _missionFeasiblityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), _navigator->get_vstatus()->is_rotary_wing,
+				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
+				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
+				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+				_param_dist_1wp.get(), _navigator->get_mission_result()->warning);
+
+		_navigator->increment_mission_instance_count();
+		_navigator->set_mission_result_updated();
+
+		_home_inited = true;
+	}
+
+	return _navigator->get_mission_result()->valid;
 }
 
 ///////////////////////////////

@@ -39,7 +39,7 @@
  * @author Brian Krentz <brian.krentz@gmail.com>
  */
 
-#include <px4_config.h>
+#include <nuttx/config.h>
 
 #include <systemlib/param/param.h>
 

@@ -148,6 +148,7 @@ private:
 	/* Mavlink file descriptor */
 	int mavlink_fd;
 	bool _complete;
+	bool _first_run;
 	float _drop_alt;
 	struct safety_s safety;
 	struct vehicle_status_s status;
@@ -228,6 +229,11 @@ private:
 	 * Set that the mission is finished if one exists or that none exists
 	 */
 	void set_mission_finished();
+
+	/**
+	 * Check wether a mission is ready to go
+	 */
+	bool check_mission_valid();
 
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
