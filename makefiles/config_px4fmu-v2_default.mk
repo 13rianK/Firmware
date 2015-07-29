@@ -72,6 +72,7 @@ MODULES		+= modules/mavlink
 MODULES		+= modules/gpio_led
 MODULES		+= modules/uavcan
 MODULES 	+= modules/land_detector
+MODULES		+= modules/servo_ctl
 
 #
 # Estimation modules (EKF/ SO3 / other filters)
@@ -156,7 +157,7 @@ MODULES		+= examples/rover_steering_control
 #MODULES			+= examples/fixedwing_control
 
 # Hardware test
-#MODULES			+= examples/hwtest
+MODULES			+= examples/hwtest
 
 # Generate parameter XML file
 GEN_PARAM_XML = 1
