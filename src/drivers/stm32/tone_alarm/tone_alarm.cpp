@@ -325,8 +325,11 @@ ToneAlarm::ToneAlarm() :
 {
 	// enable debug() calls
 	//_debug_enabled = true;
-	_default_tunes[TONE_STARTUP_TUNE] = "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc";		// startup tune
-	_default_tunes[TONE_ERROR_TUNE] = "MBT200a8a8a8PaaaP";						// ERROR tone
+    //_default_tunes[TONE_STARTUP_TUNE] = "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc";		// startup tune
+    _default_tunes[TONE_STARTUP_TUNE] = "MFT240L4 O3cP4O2bbP4aP4a aO3cO2ageP2P4 O3cedO2bgP2P4 gO3dcO2bO3cO2ba\
+                O3cP4O2bbP4aP4a aO3cO2ageP2P4 O3cP4edP2O2bO3dP2 O2bO3cP4O2aP2 O3cO2bO3caP1 O3cO2bO3cgP1 O3cO2bO3cgP1 O3cO2bO3cbP4aP2";
+
+    _default_tunes[TONE_ERROR_TUNE] = "MBT200a8a8a8PaaaP";						// ERROR tone
 	_default_tunes[TONE_NOTIFY_POSITIVE_TUNE] = "MFT200e8a8a";					// Notify Positive tone
 	_default_tunes[TONE_NOTIFY_NEUTRAL_TUNE] = "MFT200e8e";						// Notify Neutral tone
 	_default_tunes[TONE_NOTIFY_NEGATIVE_TUNE] = "MFT200e8c8e8c8e8c8";				// Notify Negative tone
@@ -340,6 +343,8 @@ ToneAlarm::ToneAlarm() :
 	_default_tunes[TONE_BARO_WARNING_TUNE] = "MFT255L4gf#fed#d";				// baro warning
 	_default_tunes[TONE_SINGLE_BEEP_TUNE] = "MFT100a8";                             // single beep
 	_default_tunes[TONE_HOME_SET] = "MFT100L4>G#6A#6B#4";
+    _default_tunes[TONE_RED_RIVER_VALLEY] = "MFT240L4 O2gO3c L2eL4eeL2eL4de dL1cP4L4O2gO3c L2eL4ceL2gL4fe L1dP2L4gf L2eL4edL2cL4de gL1fP4L4O2aa L2gL4bO3cL2dL4ed L1c";
+
 
 	_tune_names[TONE_STARTUP_TUNE] = "startup";			// startup tune
 	_tune_names[TONE_ERROR_TUNE] = "error";				// ERROR tone
@@ -356,6 +361,8 @@ ToneAlarm::ToneAlarm() :
 	_tune_names[TONE_BARO_WARNING_TUNE] = "baro_warning";			// baro warning
 	_tune_names[TONE_SINGLE_BEEP_TUNE] = "beep";                    // single beep
 	_tune_names[TONE_HOME_SET] = "home_set";
+    _tune_names[TONE_RED_RIVER_VALLEY] = "red_river_valley";
+
 }
 
 ToneAlarm::~ToneAlarm()

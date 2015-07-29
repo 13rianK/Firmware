@@ -66,6 +66,14 @@ ORB_DEFINE(output_pwm, struct pwm_output_values);
 #include <drivers/drv_rc_input.h>
 ORB_DEFINE(input_rc, struct rc_input_values);
 
+
+
+#include "topics/adc_prox.h"
+ORB_DEFINE(adc_prox, struct adc_prox_s);
+
+#include "topics/test_uorb.h"
+ORB_DEFINE(test_uorb, struct test_uorb_s);
+
 #include "topics/vehicle_attitude.h"
 ORB_DEFINE(vehicle_attitude, struct vehicle_attitude_s);
 

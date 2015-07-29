@@ -66,6 +66,12 @@
 #include <systemlib/perf_counter.h>
 
 #include <uORB/topics/system_power.h>
+#include "uORB/topics/adc_prox.h"
+
+#include <mavlink/mavlink_log.h>
+
+//static int mavlink_fd=0;
+
 
 /*
  * Register accessors.
@@ -123,6 +129,7 @@ private:
 	adc_msg_s		*_samples;		/**< sample buffer */
 
 	orb_advert_t		_to_system_power;
+    orb_advert_t        _adc_prox;
 
 	/** work trampoline */
 	static void		_tick_trampoline(void *arg);
@@ -141,6 +148,7 @@ private:
 
 	// update system_power ORB topic, only on FMUv2
 	void update_system_power(void);
+    void update_adc_prox(void);
 };
 
 ADC::ADC(uint32_t channels) :
@@ -148,7 +156,8 @@ ADC::ADC(uint32_t channels) :
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr),
-	_to_system_power(0)
+    _to_system_power(0),
+    _adc_prox(0)
 {
 	_debug_enabled = true;
 
@@ -299,7 +308,34 @@ ADC::_tick()
 	for (unsigned i = 0; i < _channel_count; i++)
 		_samples[i].am_data = _sample(_samples[i].am_channel);
 	update_system_power();
+    update_adc_prox();
+
 }
+
+void ADC::update_adc_prox(void){
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+    adc_prox_s adc;
+    adc.timestamp = hrt_absolute_time();
+
+
+    for (unsigned i = 0; i < _channel_count; i++) {
+        if (_samples[i].am_channel == 14) {
+            // it is 2:1 scaled
+            adc.data = _samples[i].am_data/4;         //* (6.6f / 4096);
+          //  mavlink_log_info(mavlink_fd,"Distance %.4f ",adc.data);
+        }
+    }
+    adc.prox_num=0;
+
+    /* lazily publish */
+    if (_adc_prox != NULL) {
+        orb_publish(ORB_ID(adc_prox), _adc_prox, &adc);
+    } else {
+        _adc_prox = orb_advertise(ORB_ID(adc_prox), &adc);
+    }
+#endif // CONFIG_ARCH_BOARD_PX4FMU_V2
+}
+
 
 void
 ADC::update_system_power(void)
@@ -359,7 +395,7 @@ ADC::_sample(unsigned channel)
 			log("sample timeout");
 			return 0xffff;
 		}
-	}
+    }
 
 	/* read the result and clear EOC */
 	uint16_t result = rDR;
@@ -381,28 +417,34 @@ void
 test(void)
 {
 
-	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
-	if (fd < 0)
-		err(1, "can't open ADC device");
+    int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
+    if (fd < 0)
+        err(1, "can't open ADC device");
 
-	for (unsigned i = 0; i < 50; i++) {
-		adc_msg_s data[12];
-		ssize_t count = read(fd, data, sizeof(data));
+    for (unsigned i = 0; i < 100; i++) {
+        adc_msg_s data[12];
+        ssize_t count = read(fd, data, sizeof(data));
 
-		if (count < 0)
-			errx(1, "read error");
+        if (count < 0)
+            errx(1, "read error");
 
-		unsigned channels = count / sizeof(data[0]);
+        //unsigned channels = count / sizeof(data[0]);
 
-		for (unsigned j = 0; j < channels; j++) {
-			printf ("%d: %u  ", data[j].am_channel, data[j].am_data);
-		}
+        //for (unsigned j = 0; j < channels; j++) {
+        //	printf ("%d: %u  ", data[j].am_channel, data[j].am_data);
+        //}
+        printf ("%d: %u       ", data[6].am_channel, data[6].am_data);
+        printf ("%d: %u       ", data[7].am_channel, data[7].am_data);
+        printf ("%d: %u       ", data[9].am_channel, data[9].am_data);
 
-		printf("\n");
-		usleep(500000);
-	}
+        printf("%d  cm", data[7].am_data/4);
 
-	exit(0);
+
+        printf("\n");
+        usleep(500000);
+    }
+
+    exit(0);
 }
 }
 

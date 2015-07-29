@@ -88,6 +88,9 @@
 #define MIN_DIST		0.01f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 
+extern bool isInAdcMode;
+
+
 /**
  * Multicopter position control app start / stop handling function
  *
@@ -625,11 +628,13 @@ void
 MulticopterPositionControl::control_manual(float dt)
 {
 	_sp_move_rate.zero();
-
-	if (_control_mode.flag_control_altitude_enabled) {
+  //  _mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+    if (_control_mode.flag_control_altitude_enabled&&!isInAdcMode) {
 		/* move altitude setpoint with throttle stick */
-		_sp_move_rate(2) = -scale_control(_manual.z - 0.5f, 0.5f, alt_ctl_dz);
-	}
+        _sp_move_rate(2) = -scale_control(_manual.z - 0.5f, 0.5f, alt_ctl_dz);
+    //    mavlink_log_critical(_mavlink_fd,"into this damn place");
+
+    }
 
 	if (_control_mode.flag_control_position_enabled) {
 		/* move position setpoint with roll/pitch stick */
