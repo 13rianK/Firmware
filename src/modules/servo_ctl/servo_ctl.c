@@ -75,9 +75,11 @@ int 	_pwm_alt_rate;
 
 __EXPORT int servo_ctl_main(int argc, char *argv[]);
 
-void servo_ctl_pos1(FAR void *arg);
+__EXPORT void servo_ctl_pos1(void);
 
-void servo_ctl_pos2(FAR void *arg);
+__EXPORT void servo_ctl_pos2(void);
+
+void servo_ctl_set_pos(FAR void * arg, int rate);
 
 void servo_ctl_stop(FAR void *arg);
 
@@ -132,10 +134,8 @@ int servo_ctl_main(int argc, char *argv[])
 			memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
 			servo_ctl_data->use_io = use_io;
 			servo_ctl_data->pin = pin;
-			warnx("HPWORK is queue %d", HPWORK);
-			warnx("LPWORK is queue %d", LPWORK);
 			//int ret = work_queue(LPWORK, &servo_ctl_data->work, servo_ctl_pos1, servo_ctl_data, 0);
-			servo_ctl_pos1(servo_ctl_data);
+			servo_ctl_pos1();
 
 			/*if (ret != 0) {
 				errx(1, "failed to queue work: %d", ret);
@@ -155,15 +155,7 @@ int servo_ctl_main(int argc, char *argv[])
 			}
 			use_io = false;
 			pin = 1;
-
-
-			servo_ctl_data = malloc(sizeof(struct servo_ctl_s));
-			memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
-			servo_ctl_data->use_io = use_io;
-			servo_ctl_data->pin = pin;
-			warnx("HPWORK is queue %d", HPWORK);
-			warnx("LPWORK is queue %d", LPWORK);
-			servo_ctl_pos2(servo_ctl_data);
+			servo_ctl_pos2();
 /*
 			if (ret != 0) {
 				errx(1, "failed to queue work: %d", ret);
@@ -188,8 +180,6 @@ int servo_ctl_main(int argc, char *argv[])
 				memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
 				servo_ctl_data->use_io = use_io;
 				servo_ctl_data->pin = pin;
-				warnx("HPWORK is queue %d", HPWORK);
-				warnx("LPWORK is queue %d", LPWORK);
 				servo_ctl_stop(servo_ctl_data);
 				exit(0);
 
@@ -203,126 +193,27 @@ int servo_ctl_main(int argc, char *argv[])
 	}
 }
 
-int set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
+void servo_ctl_pos1()
 {
-	for (unsigned pass = 0; pass < 2; pass++) {
-		for (unsigned group = 0; group < 6; group++) {
+	servo_ctl_data = malloc(sizeof(struct servo_ctl_s));
+	memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
+	servo_ctl_data->use_io = use_io;
+	servo_ctl_data->pin = pin;
 
-			// get the channel mask for this rate group
-			uint32_t mask = up_pwm_servo_get_rate_group(group);
-
-			if (mask == 0)
-				continue;
-
-			// all channels in the group must be either default or alt-rate
-			uint32_t alt = rate_map & mask;
-
-			if (pass == 0) {
-				// preflight
-				if ((alt != 0) && (alt != mask)) {
-					warn("rate group %u mask %x bad overlap %x", group, mask, alt);
-					// not a legal map, bail
-					return 0;
-				}
-
-			} else {
-				// set it - errors here are unexpected
-				if (alt != 0) {
-					if (up_pwm_servo_set_rate_group_update(group, _pwm_alt_rate) != OK) {
-						warn("rate group set alt failed");
-						return 0;
-					}
-
-				} else {
-					if (up_pwm_servo_set_rate_group_update(group, _pwm_default_rate) != OK) {
-						warn("rate group set default failed");
-						return 0;
-					}
-				}
-			}
-		}
-	}
-
-	_pwm_alt_rate_channels = rate_map;
-	_pwm_default_rate = default_rate;
-	_pwm_alt_rate = alt_rate;
-
-	return OK;
+	servo_ctl_set_pos(servo_ctl_data, 2000);
 }
 
-//takes a pointer to another servo_ctl_s struct
-void servo_ctl_pos1(FAR void *arg)
+void servo_ctl_pos2()
 {
-	warnx("trying to start servo_ctl");
-	FAR struct servo_ctl_s *priv = (FAR struct servo_ctl_s *)arg;
+	servo_ctl_data = malloc(sizeof(struct servo_ctl_s));
+	memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
+	servo_ctl_data->use_io = use_io;
+	servo_ctl_data->pin = pin;
 
-	char *gpio_dev;
-
-	// sets all actions to the FMU/AUX pins
-	gpio_dev = PX4FMU_DEVICE_PATH;
-
-	// open GPIO device
-	priv->gpio_fd = open(gpio_dev, 0);
-
-	if (priv->gpio_fd < 0) {
-		// TODO find way to print errors
-		printf("servo_ctl: GPIO device \"%s\" open fail\n", gpio_dev);
-		servo_ctl_pos = 0;
-		return;
-	}
-
-	// configure GPIO pin
-	// px4fmu only, px4io doesn't support GPIO_SET_OUTPUT and will ignore
-	//ioctl(priv->gpio_fd, GPIO_SET_OUTPUT, priv->pin);
-
-	// sets PWM values
-
-	// initializes all FMU ports as servos, w/ magic numbers (mask value), taken from fmu.cpp
-	up_pwm_servo_init(0xff);
-
-	// set initial rate
-	_pwm_default_rate = 50;
-	_pwm_alt_rate = 50;
-	set_pwm_rate(0, _pwm_default_rate, _pwm_alt_rate);
-
-	int ret = ioctl(priv->gpio_fd, PWM_SERVO_SET_ARM_OK, 0);
-
-	if (ret != OK) {
-		err(1, "PWM_SERVO_SET_ARM_OK");
-	}
-	else {
-		warnx("Set arm is good");
-	}
-
-	// tell IO that the system is armed (it will output values if safety is off)
-	ret = ioctl(priv->gpio_fd, PWM_SERVO_ARM, 0);
-
-	if (ret != OK) {
-		err(1, "PWM_SERVO_ARM");
-	}
-	else{
-		warnx("Armed and ready");
-	}
-
-	// sets PWM values and activates servo
-	ret = ioctl(priv->gpio_fd, PWM_SERVO_SET((priv->pin)-1), 2000);
-
-	if (ret != OK) {
-		err(1, "PWM_SERVO_SET(%d)", priv->pin);
-	}
-	else{
-		warnx("should have pwm of 2000");
-	}
-
-	if (ret != 0) {
-		// TODO find way to print errors
-		//printf("servo_ctl: failed to queue work: %d\n", ret);
-		servo_ctl_pos = 0;
-		return;
-	}
+	servo_ctl_set_pos(servo_ctl_data, 800);
 }
 
-void servo_ctl_pos2(FAR void *arg)
+void servo_ctl_set_pos(FAR void *arg, int rate)
 {
 	FAR struct servo_ctl_s *priv = (FAR struct servo_ctl_s *)arg;
 
@@ -351,9 +242,9 @@ void servo_ctl_pos2(FAR void *arg)
 	up_pwm_servo_init(0xff);
 
 	// set initial rate
-	_pwm_default_rate = 50;
+	/*_pwm_default_rate = 50;
 	_pwm_alt_rate = 50;
-	set_pwm_rate(0, _pwm_default_rate, _pwm_alt_rate);
+	set_pwm_rate(0, _pwm_default_rate, _pwm_alt_rate);*/
 
 	int ret = ioctl(priv->gpio_fd, PWM_SERVO_SET_ARM_OK, 0);
 
@@ -375,7 +266,7 @@ void servo_ctl_pos2(FAR void *arg)
 	}
 
 	// sets PWM values and activates servo
-	ret = ioctl(priv->gpio_fd, PWM_SERVO_SET((priv->pin)-1), 800);
+	ret = ioctl(priv->gpio_fd, PWM_SERVO_SET((priv->pin)-1), rate);
 
 	if (ret != OK) {
 		err(1, "PWM_SERVO_SET(%d)", priv->pin);
@@ -405,16 +296,7 @@ void servo_ctl_stop(FAR void *arg)
 		return;
 	}
 
-	//returns to original position
-	int ret = ioctl(priv->gpio_fd, PWM_SERVO_SET(priv->pin),1100);
-	if (ret != OK) {
-			err(1, "PWM_SERVO_SET(%d)", priv->pin);
-		}
-	else {
-		warnx("hold your horses");
-	}
-
-	ret = ioctl(priv->gpio_fd, PWM_SERVO_DISARM, 0);
+	int ret = ioctl(priv->gpio_fd, PWM_SERVO_DISARM, 0);
 
 	if (ret != OK) {
 		err(1, "PWM_SERVO_DISARM");
@@ -423,3 +305,11 @@ void servo_ctl_stop(FAR void *arg)
 		warnx("go to sleep");
 	}
 }
+
+/*servo_ctl_memset(FAR void *arg, bool io, int p)
+{
+	servo_ctl_data = malloc(sizeof(struct servo_ctl_s));
+	memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
+	servo_ctl_data->use_io = io;
+	servo_ctl_data->pin = p;
+}*/
