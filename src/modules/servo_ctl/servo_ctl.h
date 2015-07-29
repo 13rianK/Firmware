@@ -76,3 +76,5 @@ _EXPORT void servo_ctl_pos1(FAR void *arg);
 _EXPORT void servo_ctl_pos2(FAR void *arg);
 
 _EXPORT void servo_ctl_stop(FAR void *arg);
+
+#endif
