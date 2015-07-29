@@ -54,7 +54,7 @@
 #include <systemlib/err.h>
 #include <geo/geo.h>
 #include <lib/mathlib/mathlib.h>
-#include <servo_ctl/servo_ctl.h>
+//#include <servo_ctl/servo_ctl.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
@@ -80,6 +80,7 @@ Delivery::Delivery(Navigator *navigator, const char *name) :
 	_complete(false),
 	_first_run(false),
 	_drop_alt(8.0),
+	//servo_ctl_data(),
 	// safety({0}),
 	// status({0}),
 	// armed({0}),
@@ -447,25 +448,23 @@ Delivery::advance_delivery()
 void
 Delivery::load_package()
 {
-	struct servo_ctl_s *servo_ctl_data;
-	servo_ctl_data = malloc(sizeof(struct servo_ctl_s));
-	memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
-	servo_ctl_data->use_io = false;
-	servo_ctl_data->pin = 1;
+	// servo_ctl_data = malloc(sizeof(struct servo_ctl_s));
+	// memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
+	// servo_ctl_data->use_io = false;
+	// servo_ctl_data->pin = 1;
 
-	servo_ctl_pos2(servo_ctl_data);
+	// servo_ctl_pos2(servo_ctl_data);
 }
 
 void
 Delivery::unload_package()
 {
-	struct servo_ctl_s *servo_ctl_data;
-	servo_ctl_data = malloc(sizeof(struct servo_ctl_s));
-	memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
-	servo_ctl_data->use_io = false;
-	servo_ctl_data->pin = 1;
+	// servo_ctl_data = malloc(sizeof(struct servo_ctl_s));
+	// memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
+	// servo_ctl_data->use_io = false;
+	// servo_ctl_data->pin = 1;
 
-	servo_ctl_pos1(servo_ctl_data);
+	// servo_ctl_pos1(servo_ctl_data);
 }
 
 ///////////////////////////////

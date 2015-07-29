@@ -158,6 +158,7 @@ private:
 	struct safety_s safety;
 	struct vehicle_status_s status;
 	struct actuator_armed_s armed;
+	// struct servo_ctl_s *servo_ctl_data;
 
 	///////////////////////////
 

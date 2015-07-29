@@ -69,12 +69,12 @@ struct servo_ctl_s {
 static struct servo_ctl_s *servo_ctl_data;
 static bool servo_ctl_started;
 
-_EXPORT int servo_ctl_main(int argc, char *argv[]);
+__EXPORT int servo_ctl_main(int argc, char *argv[]);
 
-_EXPORT void servo_ctl_pos1(FAR void *arg);
+__EXPORT void servo_ctl_pos1(FAR void *arg);
 
-_EXPORT void servo_ctl_pos2(FAR void *arg);
+__EXPORT void servo_ctl_pos2(FAR void *arg);
 
-_EXPORT void servo_ctl_stop(FAR void *arg);
+__EXPORT void servo_ctl_stop(FAR void *arg);
 
 #endif
