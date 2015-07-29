@@ -79,8 +79,6 @@ void servo_ctl_pos1(FAR void *arg);
 
 void servo_ctl_pos2(FAR void *arg);
 
-void servo_ctl_run(FAR void *arg);
-
 void servo_ctl_stop(FAR void *arg);
 
 int servo_ctl_main(int argc, char *argv[])
