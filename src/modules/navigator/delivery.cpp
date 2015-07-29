@@ -171,6 +171,8 @@ Delivery::on_activation()
 	// check conditions and acquire needed GPS info
 	delivery_status = DELIV_PREFLIGHT;
 
+	load_package();
+
 	_first_run = true;
 
 	_rtl_state = RTL_STATE_CLIMB;

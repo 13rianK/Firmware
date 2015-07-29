@@ -141,7 +141,12 @@ private:
 	void advance_delivery();
 
 	/**
-	*	Activates the servo
+	*	Closes the servo
+	*/
+	void load_package();
+
+	/**
+	*	Opens the servo
 	*/
 	void unload_package();
 
