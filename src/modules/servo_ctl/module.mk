@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,37 +32,10 @@
 ############################################################################
 
 #
-# Main Navigation Controller
+# Servo Control via GPIO driver
 #
 
-MODULE_COMMAND	= navigator
+MODULE_COMMAND	= servo_ctl
+SRCS			= servo_ctl.c
 
-SRCS		= navigator_main.cpp \
-		  navigator_params.c \
-		  navigator_mode.cpp \
-		  mission_block.cpp \
-		  mission.cpp \
-		  mission_params.c \
-		  loiter.cpp \
-		  rtl.cpp \
-		  rtl_params.c \
-		  mission_feasibility_checker.cpp \
-		  geofence.cpp \
-		  geofence_params.c \
-		  datalinkloss.cpp \
-		  datalinkloss_params.c \
-		  delivery.cpp \
-		  delivery_params.c \
-		  rcloss.cpp \
-		  rcloss_params.c \
-		  enginefailure.cpp \
-		  gpsfailure.cpp \
-		  gpsfailure_params.c 
-
-INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
-
-MODULE_STACKSIZE = 1200
-
-MAXOPTIMIZATION = -Os
-
-EXTRACXXFLAGS	= -Wno-sign-compare
+MAXOPTIMIZATION	 = -Os

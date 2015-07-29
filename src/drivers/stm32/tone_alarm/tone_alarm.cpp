@@ -325,15 +325,18 @@ ToneAlarm::ToneAlarm() :
 {
 	// enable debug() calls
 	//_debug_enabled = true;
+<<<<<<< HEAD
     //_default_tunes[TONE_STARTUP_TUNE] = "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc";		// startup tune
     _default_tunes[TONE_STARTUP_TUNE] = "MFT240L4 O3cP4O2bbP4aP4a aO3cO2ageP2P4 O3cedO2bgP2P4 gO3dcO2bO3cO2ba\
                 O3cP4O2bbP4aP4a aO3cO2ageP2P4 O3cP4edP2O2bO3dP2 O2bO3cP4O2aP2 O3cO2bO3caP1 O3cO2bO3cgP1 O3cO2bO3cgP1 O3cO2bO3cbP4aP2";
 
     _default_tunes[TONE_ERROR_TUNE] = "MBT200a8a8a8PaaaP";						// ERROR tone
+=======
+	>>>>>>> 55ffa069832dc5c030901a87386f2acef700a06e
 	_default_tunes[TONE_NOTIFY_POSITIVE_TUNE] = "MFT200e8a8a";					// Notify Positive tone
 	_default_tunes[TONE_NOTIFY_NEUTRAL_TUNE] = "MFT200e8e";						// Notify Neutral tone
 	_default_tunes[TONE_NOTIFY_NEGATIVE_TUNE] = "MFT200e8c8e8c8e8c8";				// Notify Negative tone
-	_default_tunes[TONE_ARMING_WARNING_TUNE] = "MNT75L1O2G";					//arming warning
+	_default_tunes[TONE_ARMING_WARNING_TUNE] = "MFT208 L16 01e-ce-g02ce-dc01bgb02dgfe-de-ce-g03ce-dcdc02bagfe-de-ce-g03ce";					//arming warning
 	_default_tunes[TONE_BATTERY_WARNING_SLOW_TUNE] = "MBNT100a8";					//battery warning slow
 	_default_tunes[TONE_BATTERY_WARNING_FAST_TUNE] = "MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8";	//battery warning fast
 	_default_tunes[TONE_GPS_WARNING_TUNE] = "MFT255L4AAAL1F#";					//gps warning slow

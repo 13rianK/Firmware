@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,46 +33,45 @@
  ****************************************************************************/
 
 /**
- * @file px4_custom_mode.h
- * PX4 custom flight modes
+ * @file servo_ctl.h
  *
- * @author Anton Babushkin <anton@px4.io>
+ * gripper servo via GPIO driver.
+ *
+ * @author Vinh Nguyen
  */
 
-#ifndef PX4_CUSTOM_MODE_H_
-#define PX4_CUSTOM_MODE_H_
+#ifndef SERVO_CTL_H
+#define SERVO_CTL_H
 
-#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <nuttx/wqueue.h>
+#include <nuttx/clock.h>
+#include <systemlib/systemlib.h>
+#include <systemlib/err.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_status.h>
+#include <poll.h>
+#include <drivers/drv_gpio.h>
+#include <drivers/drv_pwm_output.h>
+#include <modules/px4iofirmware/protocol.h>
 
-enum PX4_CUSTOM_MAIN_MODE {
-	PX4_CUSTOM_MAIN_MODE_MANUAL = 1,
-	PX4_CUSTOM_MAIN_MODE_ALTCTL,
-	PX4_CUSTOM_MAIN_MODE_POSCTL,
-	PX4_CUSTOM_MAIN_MODE_AUTO,
-	PX4_CUSTOM_MAIN_MODE_ACRO,
-	PX4_CUSTOM_MAIN_MODE_OFFBOARD,
-	PX4_CUSTOM_MAIN_MODE_STABILIZED
+struct servo_ctl_s {
+	struct work_s work;
+	int gpio_fd;
+	bool use_io;
+	int pin;
 };
 
-enum PX4_CUSTOM_SUB_MODE_AUTO {
-	PX4_CUSTOM_SUB_MODE_AUTO_READY = 1,
-	PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF,
-	PX4_CUSTOM_SUB_MODE_AUTO_LOITER,
-	PX4_CUSTOM_SUB_MODE_AUTO_MISSION,
-	PX4_CUSTOM_SUB_MODE_AUTO_RTL,
-	PX4_CUSTOM_SUB_MODE_AUTO_LAND,
-	PX4_CUSTOM_SUB_MODE_AUTO_RTGS,
-	PX4_CUSTOM_SUB_MODE_DELIVERY
-};
+__EXPORT int servo_ctl_main(int argc, char *argv[]);
 
-union px4_custom_mode {
-	struct {
-		uint16_t reserved;
-		uint8_t main_mode;
-		uint8_t sub_mode;
-	};
-	uint32_t data;
-	float data_float;
-};
+__EXPORT void servo_ctl_pos1(void);
 
-#endif /* PX4_CUSTOM_MODE_H_ */
+__EXPORT void servo_ctl_pos2(void);
+
+__EXPORT void servo_ctl_stop(FAR void *arg);
+
+#endif
