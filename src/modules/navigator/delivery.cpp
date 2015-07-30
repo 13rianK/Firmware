@@ -79,7 +79,7 @@ Delivery::Delivery(Navigator *navigator, const char *name) :
 	mavlink_fd(0),
 	_complete(false),
 	_first_run(false),
-	_drop_alt(5.0),
+	_drop_alt(3.0),
 	//servo_ctl_data(),
 	// safety({0}),
 	// status({0}),
@@ -186,8 +186,6 @@ Delivery::on_active()
 		set_delivery_items();
 	}
 
-	mavlink_log_critical(_navigator->get_mavlink_fd(), "...");
-
 	//check for delivery_status and run through delivery routine
 	switch(delivery_status){
 		case DELIV_PREFLIGHT:
@@ -284,7 +282,7 @@ Delivery::activate_gripper()
 	// the code for descent can be found in set_delivery_items
 
 	// keep descending until _drop_alt reached
-	if (_navigator->get_mission_result()->reached || is_mission_item_reached()) {
+	if (is_mission_item_reached()) {
 		_complete = true;
 	}
 
