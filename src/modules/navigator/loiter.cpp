@@ -75,7 +75,8 @@ void
 Loiter::on_activation()
 {
 	/* set current mission item to loiter */
-	set_loiter_item(&_mission_item, _param_min_alt.get());
+    //set_loiter_item(&_mission_item, _param_min_alt.get());
+    set_loiter_item(&_mission_item, 0);
 
 	/* convert mission item to current setpoint */
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();

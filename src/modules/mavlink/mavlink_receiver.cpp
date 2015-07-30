@@ -88,6 +88,7 @@ __BEGIN_DECLS
 __END_DECLS
 
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
+extern bool isInAdcMode;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
@@ -1038,13 +1039,14 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		manual.loiter_switch = decode_switch_pos(man.buttons, 3);
 		manual.acro_switch = decode_switch_pos(man.buttons, 4);
 		manual.offboard_switch = decode_switch_pos(man.buttons, 5);
+        if(!isInAdcMode){
+            if (_manual_pub < 0) {
+                _manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
 
-		if (_manual_pub < 0) {
-			_manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
-
-		} else {
-			orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
-		}
+            } else {
+                orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
+            }
+        }
 	}
 }
 

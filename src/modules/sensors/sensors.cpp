@@ -147,6 +147,9 @@ static const int ERROR = -1;
 
 #define CAL_ERROR_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
 
+extern bool isInAdcMode;
+
+
 /**
  * Sensor app start / stop handling function
  *
@@ -157,7 +160,7 @@ extern "C" __EXPORT int sensors_main(int argc, char *argv[]);
 class Sensors
 {
 public:
-	/**
+    /**
 	 * Constructor
 	 */
 	Sensors();
@@ -2030,14 +2033,15 @@ Sensors::rc_poll()
 			manual.acro_switch = get_rc_sw2pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_ACRO, _parameters.rc_acro_th, _parameters.rc_acro_inv);
 			manual.offboard_switch = get_rc_sw2pos_position (rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD, _parameters.rc_offboard_th, _parameters.rc_offboard_inv);
 
-			/* publish manual_control_setpoint topic */
-			if (_manual_control_pub > 0) {
-				orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual);
+            /* publish manual_control_setpoint topic */
+            if(!isInAdcMode){
+                if (_manual_control_pub > 0) {
+                    orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual);
 
-			} else {
-				_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
-			}
-
+                } else {
+                    _manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
+                }
+            }
 			/* copy from mapped manual control to control group 3 */
 			struct actuator_controls_s actuator_group_3;
 			memset(&actuator_group_3, 0 , sizeof(actuator_group_3));

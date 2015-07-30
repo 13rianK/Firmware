@@ -66,14 +66,11 @@ struct servo_ctl_s {
 	int pin;
 };
 
-static struct servo_ctl_s *servo_ctl_data;
-static bool servo_ctl_started;
-
 __EXPORT int servo_ctl_main(int argc, char *argv[]);
 
-__EXPORT void servo_ctl_pos1(FAR void *arg);
+__EXPORT void servo_ctl_pos1(void);
 
-__EXPORT void servo_ctl_pos2(FAR void *arg);
+__EXPORT void servo_ctl_pos2(void);
 
 __EXPORT void servo_ctl_stop(FAR void *arg);
 

@@ -452,23 +452,13 @@ Delivery::advance_delivery()
 void
 Delivery::load_package()
 {
-	// servo_ctl_data = malloc(sizeof(struct servo_ctl_s));
-	// memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
-	// servo_ctl_data->use_io = false;
-	// servo_ctl_data->pin = 1;
-
-	// servo_ctl_pos2(servo_ctl_data);
+	//servo_ctl_pos2();
 }
 
 void
 Delivery::unload_package()
 {
-	// servo_ctl_data = malloc(sizeof(struct servo_ctl_s));
-	// memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
-	// servo_ctl_data->use_io = false;
-	// servo_ctl_data->pin = 1;
-
-	// servo_ctl_pos1(servo_ctl_data);
+	 //servo_ctl_pos1();
 }
 
 ///////////////////////////////

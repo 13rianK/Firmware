@@ -89,6 +89,9 @@
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include "uORB/topics/adc_prox.h"
+
 
 #include <drivers/drv_led.h>
 #include <drivers/drv_hrt.h>
@@ -190,8 +193,17 @@ static struct vehicle_control_mode_s control_mode;
 static struct offboard_control_mode_s offboard_control_mode;
 static struct home_position_s _home;
 
+/**************************************************************************************************************/
+static struct manual_control_setpoint_s mcs;
+static struct vehicle_attitude_setpoint_s vas;
+/**************************************************************************************************************/
 static unsigned _last_mission_instance = 0;
 
+static int timecnt=0; // To count the times the adc value has gone below threshold
+
+
+//bool isInAdcMode = false;
+__EXPORT bool isInAdcMode = false;
 /**
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -490,6 +502,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_MODE: {
 			uint8_t base_mode = (uint8_t)cmd->param1;
 			uint8_t custom_main_mode = (uint8_t)cmd->param2;
+           // uint8_t automode = (uint8_t)cmd->param3;
 
 			transition_result_t arming_ret = TRANSITION_NOT_CHANGED;
 
@@ -527,8 +540,18 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
-					main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_MISSION);
+                    main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_MISSION);
 
+                    /*if(automode == 3)//auto loiter
+                        main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_LOITER);
+                    else if(automode == 4)// auto mission
+                        main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_MISSION);
+                    else if(automode == 5) // auto return to launch
+                        main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_RTL);
+                    else
+                        main_ret = TRANSITION_DENIED;
+                        mavlink_log_critical(mavlink_fd, "Auto Mode Set Command parameter error");
+                    */
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ACRO) {
 					/* ACRO */
 					main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_ACRO);
@@ -723,7 +746,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.2f", home->lat, home->lon, (double)home->alt);
 
 				/* announce new home position */
-				if (*home_pub > 0) {
+                if (*home_pub > 0) {
 					orb_publish(ORB_ID(home_position), *home_pub, home);
 
 				} else {
@@ -997,6 +1020,18 @@ int commander_thread_main(int argc, char *argv[])
 	orb_advert_t home_pub = -1;
 	memset(&_home, 0, sizeof(_home));
 
+    /****************************************************************************************************************************/
+    //orb_advert_t mcs_pub = -1;
+    memset(&mcs, 0, sizeof(mcs));
+
+    orb_advert_t vas_pub = -1;
+    memset(&vas, 0, sizeof(vas));
+    /****************************************************************************************************************************/
+
+
+
+
+
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	orb_advert_t mission_pub = -1;
 	mission_s mission;
@@ -1161,6 +1196,10 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&vtol_status, 0, sizeof(vtol_status));
 	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
 
+    /* Subscribe to adc_prox topic */
+    int adc_prox_sub=orb_subscribe(ORB_ID(adc_prox));
+    struct adc_prox_s adc_prox;
+    memset(&adc_prox, 0 ,sizeof(adc_prox));
 
 	control_status_leds(&status, &armed, true);
 
@@ -1917,7 +1956,9 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			/* evaluate the main state machine according to mode switches */
-			transition_result_t main_res = set_main_state_rc(&status, &sp_man);
+            transition_result_t main_res = TRANSITION_NOT_CHANGED;
+            if(!isInAdcMode)
+                 main_res = set_main_state_rc(&status, &sp_man);
 
 			/* play tune on mode change only if armed, blink LED always */
 			if (main_res == TRANSITION_CHANGED) {
@@ -1927,7 +1968,7 @@ int commander_thread_main(int argc, char *argv[])
 			} else if (main_res == TRANSITION_DENIED) {
 				/* DENIED here indicates bug in the commander */
 				mavlink_log_critical(mavlink_fd, "main state transition denied");
-			}
+            }
 
 		} else {
 			if (!status.rc_signal_lost) {
@@ -2109,6 +2150,44 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		was_armed = armed.armed;
+/******************************************************************/
+
+
+        /* Make sure the drone avoids barriers in whatever mode */
+
+   //     if(status.main_state==vehicle_status_s::MAIN_STATE_MANUAL){
+            orb_check(adc_prox_sub, &updated);
+            if(updated){
+                orb_copy(ORB_ID(adc_prox), adc_prox_sub, &adc_prox);
+            }
+            int data=adc_prox.data;
+           // mavlink_log_critical(mavlink_fd, "Distance: %.4f",adc_prox.data);
+
+            if(data < 50 && data>19){
+                timecnt++;
+            }
+            else{
+                timecnt=0;
+                isInAdcMode = false;
+            }
+            if(timecnt>1){
+                 //int shuai=main_state_transition(&status,vehicle_status_s::MAIN_STATE_AUTO_LOITER);
+                int shuai = main_state_transition(&status,vehicle_status_s::MAIN_STATE_ALTCTL);
+                //int shuai=main_state_transition(&status,vehicle_status_s::MAIN_STATE_POSCTL);
+
+                // mavlink_log_critical(mavlink_fd, "Distance: %.4f   return value: %d ",adc_prox.data,shuai);
+                if(shuai==1){
+                    main_state_changed = true;
+                }
+                isInAdcMode = true;
+                // printf("counting %d", timecnt);
+                // timecnt=0;
+            }
+
+
+     //   }
+
+/*******************************************************************/
 
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&status, (bool)datalink_loss_enabled,
@@ -2135,16 +2214,46 @@ int commander_thread_main(int argc, char *argv[])
 			mavlink_log_info(mavlink_fd, "Flight mode: %s", nav_states_str[status.nav_state]);
 			main_state_changed = false;
 		}
-
+        if(isInAdcMode){
+          /*  mcs.x = 0;
+            mcs.y = 0.8;
+            mcs.z = 0;
+            mcs.r = 0;
+            mcs.timestamp = now;
+            if(mcs_pub < 0)
+                mcs_pub = orb_advertise(ORB_ID(manual_control_setpoint), &mcs);
+            else
+                orb_publish(ORB_ID(manual_control_setpoint), mcs_pub, &mcs);
+        */
+            vas.thrust = 0.8;
+            vas.timestamp = now;
+            if(vas_pub < 0)
+                vas_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &vas);
+            else
+                orb_publish(ORB_ID(vehicle_attitude_setpoint), vas_pub, &vas);
+        }
 		/* publish states (armed, control mode, vehicle status) at least with 5 Hz */
 		if (counter % (200000 / COMMANDER_MONITORING_INTERVAL) == 0 || status_changed) {
+
 			set_control_mode();
 			control_mode.timestamp = now;
 			orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, &control_mode);
 
 			status.timestamp = now;
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
-
+/*
+            if(isInAdcMode){
+                mcs.x = 0;
+                mcs.y = 0;
+                mcs.z = 600;
+                mcs.r = 0;
+                mcs.timestamp = now;
+                if(mcs_pub < 0)
+                    mcs_pub = orb_advertise(ORB_ID(manual_control_setpoint), &mcs);
+                else
+                    orb_publish(ORB_ID(manual_control_setpoint), mcs_pub, &mcs);
+            }
+*/
 			armed.timestamp = now;
 
 			/* set prearmed state if safety is off, or safety is not present and 5 seconds passed */
@@ -2241,6 +2350,7 @@ int commander_thread_main(int argc, char *argv[])
 	close(param_changed_sub);
 	close(battery_sub);
 	close(mission_pub);
+    close(adc_prox_sub);
 
 	thread_running = false;
 
