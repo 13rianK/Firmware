@@ -63,6 +63,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/turn_servo.h>
 
 // #include <commander/state_machine_helper.h>
 // #include <commander/commander_helper.h>
@@ -327,7 +328,7 @@ Delivery::return_home()
 void
 Delivery::shutoff()
 {
-	Disarm the drone when it is done with the landing
+	//Disarm the drone when it is done with the landing
 	if (_rtl_state == RTL_STATE_LANDED) {
 		if (_navigator->get_vstatus()->condition_landed) {
 		    /* Subscribe to armed_actuator topic */
@@ -467,12 +468,22 @@ Delivery::advance_delivery()
 void
 Delivery::load_package()
 {
+	//initialize uORB for gripper
+	pub_gripper = orb_advertise(ORB_ID(turn_servo), &gripper);
+	gripper.open = false;
+	orb_publish(ORB_ID(turn_servo), &gripper);
+	close(pub_gripper);
 	//servo_ctl_pos2();
 }
 
 void
 Delivery::unload_package()
 {
+	//initialize uORB for gripper
+	pub_gripper = orb_advertise(ORB_ID(turn_servo), &gripper);
+	gripper.open = false;
+	orb_publish(ORB_ID(turn_servo), &gripper);
+	close(pub_gripper);
 	 //servo_ctl_pos1();
 }
 
