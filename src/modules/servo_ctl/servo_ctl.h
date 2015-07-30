@@ -54,6 +54,7 @@
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/turn_servo.h>
 #include <poll.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_pwm_output.h>
@@ -73,5 +74,9 @@ __EXPORT void servo_ctl_pos1(void);
 __EXPORT void servo_ctl_pos2(void);
 
 __EXPORT void servo_ctl_stop(FAR void *arg);
+
+void servo_ctl_sub_init(void);
+
+void servo_ctl_sub(void);
 
 #endif

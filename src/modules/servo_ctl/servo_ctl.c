@@ -51,6 +51,7 @@
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/turn_servo.h>
 #include <poll.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_pwm_output.h>
@@ -65,7 +66,9 @@ struct servo_ctl_s {
 
 static struct servo_ctl_s *servo_ctl_data;
 static int servo_ctl_pos = 0;
+static int sub_gripper;
 bool use_io;
+bool updated;
 int pin;
 
 int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
@@ -82,6 +85,10 @@ __EXPORT void servo_ctl_pos2(void);
 void servo_ctl_set_pos(FAR void * arg, int rate);
 
 void servo_ctl_stop(FAR void *arg);
+
+void servo_ctl_sub_init(void);
+
+void servo_ctl_sub(void);
 
 int servo_ctl_main(int argc, char *argv[])
 {
@@ -306,10 +313,31 @@ void servo_ctl_stop(FAR void *arg)
 	}
 }
 
-/*servo_ctl_memset(FAR void *arg, bool io, int p)
+void servo_ctl_sub_init()
 {
-	servo_ctl_data = malloc(sizeof(struct servo_ctl_s));
-	memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
-	servo_ctl_data->use_io = io;
-	servo_ctl_data->pin = p;
-}*/
+	sub_gripper = orb_subscribe(ORB_ID(turn_servo));
+}
+
+void servo_ctl_sub()
+{
+	struct turn_servo_s turn;
+	orb_check(sub_gripper, &updated);
+
+	if (updated){
+		orb_copy(ORB_ID(turn_servo), sub_gripper, &turn);
+
+		if (turn.stop){
+			servo_ctl_data = malloc(sizeof(struct servo_ctl_s));
+			memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
+			servo_ctl_data->use_io = use_io;
+			servo_ctl_data->pin = pin;
+			servo_ctl_stop(servo_ctl_data);
+		}
+		else if (turn.open){
+			servo_ctl_pos1();
+		}
+		else{
+			servo_ctl_pos2();
+		}
+	}
+}
