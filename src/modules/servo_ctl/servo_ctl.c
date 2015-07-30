@@ -326,7 +326,7 @@ void servo_ctl_sub()
 	if (updated){
 		orb_copy(ORB_ID(turn_servo), sub_gripper, &turn);
 
-		if (turn.stop){
+		if (turn.stopped){
 			servo_ctl_data = malloc(sizeof(struct servo_ctl_s));
 			memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
 			servo_ctl_data->use_io = use_io;
