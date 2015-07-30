@@ -152,14 +152,13 @@ private:
 	void unload_package();
 
 	/* Mavlink file descriptor */
-	int mavlink_fd;
 	int _count;
 	bool _complete;
 	bool _first_run;
 	float _drop_alt;
-	// int _armed_sub;
+	int _armed_sub;
 	// int _cancel_subs;
-	// struct actuator_armed_s _actuator_armed;
+	struct actuator_armed_s _actuator_armed;
 	// orb_advert_t _armed_adv;
 	// struct safety_s safety;
 	// struct vehicle_status_s status;

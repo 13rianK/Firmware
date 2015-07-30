@@ -76,11 +76,12 @@
 
 Delivery::Delivery(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
-	mavlink_fd(0),
+	_count(0),
 	_complete(false),
 	_first_run(false),
 	_drop_alt(5.0),
-	_count(0),
+	_armed_sub(0),
+	_actuator_armed(),
 	//servo_ctl_data(),
 	// safety({0}),
 	// status({0}),
@@ -326,17 +327,26 @@ Delivery::return_home()
 void
 Delivery::shutoff()
 {
-	// Disarm the drone when it is done with the landing
-	// look at commander 380
-	// if (_rtl_state == RTL_STATE_LANDED) {
-	// 	if (_navigator->get_vstatus()->condition_landed) {
-	// 		_vstatus = ARMING_STATE_STANDBY;
-	// 	}	
-	// }
+	Disarm the drone when it is done with the landing
+	if (_rtl_state == RTL_STATE_LANDED) {
+		if (_navigator->get_vstatus()->condition_landed) {
+		    /* Subscribe to armed_actuator topic */
+		    _armed_sub=orb_subscribe(ORB_ID(actuator_armed));
+		    memset(&_actuator_armed, 0 ,sizeof(_actuator_armed));
+
+		    _actuator_armed.armed = false;
+
+		    orb_copy(ORB_ID(actuator_armed), _armed_sub, &_actuator_armed);
+
+		    close(_armed_sub);
+
+		    mavlink_log_critical(_navigator->get_mavlink_fd(), "Quadcopter is Disarmed");
+		}	
+	}
 
 	// Update status now that the copter is disarmed
 	advance_delivery();
-	mavlink_log_critical(_navigator->get_mavlink_fd(), "Please Disarm the Quadcopter Now");
+	mavlink_log_critical(_navigator->get_mavlink_fd(), "Delivery routine complete");
 }
 
 void
