@@ -89,6 +89,7 @@ __END_DECLS
 
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 extern bool isInAdcMode;
+static int mavlink_fd=0;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
@@ -965,6 +966,8 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	mavlink_manual_control_t man;
 	mavlink_msg_manual_control_decode(msg, &man);
 
+    mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+
 	// Check target
 	if (man.target != 0 && man.target != _mavlink->get_system_id()) {
 		return;
@@ -1033,12 +1036,17 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		manual.r = man.r / 1000.0f;
 		manual.z = man.z / 1000.0f;
 
+
 		manual.mode_switch = decode_switch_pos(man.buttons, 0);
 		manual.return_switch = decode_switch_pos(man.buttons, 1);
 		manual.posctl_switch = decode_switch_pos(man.buttons, 2);
 		manual.loiter_switch = decode_switch_pos(man.buttons, 3);
 		manual.acro_switch = decode_switch_pos(man.buttons, 4);
         manual.offboard_switch = decode_switch_pos(man.buttons, 5);
+
+        mavlink_log_info(mavlink_fd,"command values: x: %.2f y: %.2f z: %.2f r: %.2f  mode_switch: %d "\
+                                    " return_switch: %d  pos_switch: %d  loiter_switch: %d acro_switch: %d  off_switch: %d");
+
         //if(!isInAdcMode){
             if (_manual_pub < 0) {
                 _manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
