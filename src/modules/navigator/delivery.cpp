@@ -481,7 +481,7 @@ Delivery::unload_package()
 {
 	//initialize uORB for gripper
 	pub_gripper = orb_advertise(ORB_ID(turn_servo), &gripper);
-	gripper.open = false;
+	gripper.open = true;
 	orb_publish(ORB_ID(turn_servo), &gripper);
 	close(pub_gripper);
 	 //servo_ctl_pos1();
