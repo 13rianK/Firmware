@@ -297,7 +297,7 @@ Delivery::activate_gripper()
 	if (_complete) {
 		//Drop the item by activating the servo
 		unload_package();
-		mavlink_log_critical(_navigator->get_mavlink_fd(), "Payload has been delivered");
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "Blackhawk has dumped");
 
 		// Update status now that dropoff is complete and reset _first_run for next stage
 		_first_run = true;
@@ -344,7 +344,7 @@ Delivery::shutoff()
 
 		    close(_armed_sub);
 
-		    mavlink_log_critical(_navigator->get_mavlink_fd(), "Quadcopter is Disarmed");
+		    mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk is Disarmed");
 		}	
 	}
 
