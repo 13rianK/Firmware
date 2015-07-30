@@ -290,10 +290,10 @@ Delivery::activate_gripper()
 	// the code for descent can be found in set_delivery_items
 
 	// keep descending until _drop_alt reached
-	if (is_mission_item_reached() || _count >= 250) {
+	if (is_mission_item_reached() || _count >= 400) {
 		_complete = true;
 		_navigator->set_can_loiter_at_sp(true);
-		if (_count >= 250) {
+		if (_count >= 400) {
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "Descent time has been exceeded");
 		}
 	}
