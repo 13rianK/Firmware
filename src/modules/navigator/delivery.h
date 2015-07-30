@@ -50,6 +50,7 @@
 #include <dataman/dataman.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/home_position.h>
@@ -152,12 +153,17 @@ private:
 
 	/* Mavlink file descriptor */
 	int mavlink_fd;
+	int _count;
 	bool _complete;
 	bool _first_run;
 	float _drop_alt;
-	struct safety_s safety;
-	struct vehicle_status_s status;
-	struct actuator_armed_s armed;
+	// int _armed_sub;
+	// int _cancel_subs;
+	// struct actuator_armed_s _actuator_armed;
+	// orb_advert_t _armed_adv;
+	// struct safety_s safety;
+	// struct vehicle_status_s status;
+	// struct actuator_armed_s armed;
 	// struct servo_ctl_s *servo_ctl_data;
 
 	///////////////////////////

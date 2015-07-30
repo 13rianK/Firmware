@@ -79,7 +79,8 @@ Delivery::Delivery(Navigator *navigator, const char *name) :
 	mavlink_fd(0),
 	_complete(false),
 	_first_run(false),
-	_drop_alt(3.0),
+	_drop_alt(5.0),
+	_count(0),
 	//servo_ctl_data(),
 	// safety({0}),
 	// status({0}),
@@ -282,8 +283,12 @@ Delivery::activate_gripper()
 	// the code for descent can be found in set_delivery_items
 
 	// keep descending until _drop_alt reached
-	if (is_mission_item_reached()) {
+	if (is_mission_item_reached() || _count >= 250) {
 		_complete = true;
+		_navigator->set_can_loiter_at_sp(true);
+		if (_count >= 250) {
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "Descent time has been exceeded");
+		}
 	}
 
 	if (_complete) {
@@ -295,6 +300,8 @@ Delivery::activate_gripper()
 		_first_run = true;
 		advance_delivery();
 	}
+
+	_count++;
 }
 
 void
@@ -362,7 +369,7 @@ Delivery::set_delivery_items()
 		_mission_item.yaw = NAN;
 		_mission_item.loiter_radius = _navigator->get_loiter_radius();
 		_mission_item.loiter_direction = 1;
-		_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 10.0f;
 		_mission_item.pitch_min = 0.0f;
