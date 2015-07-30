@@ -18579,3 +18579,7 @@ src/modules/mc_att_control/module.mk
 src/drivers/stm32/adc/module.mk
 src/modules/mc_pos_control/module.mk
 src/modules/commander/module.mk
+src/modules/navigator/delivery.cpp
+src/modules/navigator/delivery.h
+src/modules/navigator/delivery_params.c
+src/modules/navigator/module.mk
