@@ -158,6 +158,7 @@ private:
 	bool _first_run;
 	float _drop_alt;
 	int _armed_sub;
+	int _servo_sub;
 	// int _cancel_subs;
 	struct actuator_armed_s _actuator_armed;
 	struct turn_servo_s gripper;

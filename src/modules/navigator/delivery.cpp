@@ -82,6 +82,7 @@ Delivery::Delivery(Navigator *navigator, const char *name) :
 	_first_run(false),
 	_drop_alt(5.0),
 	_armed_sub(0),
+	_servo_sub(0),
 	_actuator_armed(),
 	gripper(),
 	pub_gripper(),
@@ -473,10 +474,12 @@ void
 Delivery::load_package()
 {
 	//initialize uORB for gripper
+	_servo_sub = orb_subscribe(ORB_ID(turn_servo));
 	pub_gripper = orb_advertise(ORB_ID(turn_servo), &gripper);
 	gripper.open = false;
-	orb_publish(ORB_ID(turn_servo), &gripper);
+	orb_copy(ORB_ID(turn_servo), _servo_sub, &gripper);
 	close(pub_gripper);
+	close(_servo_sub);
 	//servo_ctl_pos2();
 }
 
@@ -484,10 +487,12 @@ void
 Delivery::unload_package()
 {
 	//initialize uORB for gripper
+	_servo_sub = orb_subscribe(ORB_ID(turn_servo));
 	pub_gripper = orb_advertise(ORB_ID(turn_servo), &gripper);
 	gripper.open = true;
-	orb_publish(ORB_ID(turn_servo), &gripper);
+	orb_copy(ORB_ID(turn_servo), _servo_sub, &gripper);
 	close(pub_gripper);
+	close(_servo_sub);
 	 //servo_ctl_pos1();
 }
 
