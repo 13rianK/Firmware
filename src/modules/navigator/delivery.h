@@ -133,11 +133,6 @@ private:
 	void set_return_home();
 
 	/**
-	*	Disarming the drone
-	*/
-	void arm_disarm(bool arm, const int mavlink_fd_local, const char *armedBy);
-
-	/**
 	*	Advances the delivery_status to the next stage
 	*/
 	void advance_delivery();
@@ -159,15 +154,9 @@ private:
 	float _drop_alt;
 	int _armed_sub;
 	int _servo_sub;
-	// int _cancel_subs;
 	struct actuator_armed_s _actuator_armed;
 	struct turn_servo_s gripper;
 	orb_advert_t pub_gripper;
-	// orb_advert_t _armed_adv;
-	// struct safety_s safety;
-	// struct vehicle_status_s status;
-	// struct actuator_armed_s armed;
-	// struct servo_ctl_s *servo_ctl_data;
 
 	///////////////////////////
 
