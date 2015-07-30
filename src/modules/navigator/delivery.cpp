@@ -63,6 +63,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/turn_servo.h>
 
 // #include <commander/state_machine_helper.h>
 // #include <commander/commander_helper.h>
@@ -81,7 +82,10 @@ Delivery::Delivery(Navigator *navigator, const char *name) :
 	_first_run(false),
 	_drop_alt(5.0),
 	_armed_sub(0),
+	_servo_sub(0),
 	_actuator_armed(),
+	gripper(),
+	pub_gripper(),
 	//servo_ctl_data(),
 	// safety({0}),
 	// status({0}),
@@ -173,6 +177,8 @@ Delivery::on_activation()
 	// change delivery_status to initial state
 	// check conditions and acquire needed GPS info
 	delivery_status = DELIV_PREFLIGHT;
+
+	memset(&gripper, 0 ,sizeof(gripper));
 
 	load_package();
 
@@ -328,6 +334,8 @@ void
 Delivery::shutoff()
 {
     //Disarm the drone when it is done with the landing
+
+//>>>>>> 737fb5bab94cf81588d5d30de346d2fda635490c
 	if (_rtl_state == RTL_STATE_LANDED) {
 		if (_navigator->get_vstatus()->condition_landed) {
 		    /* Subscribe to armed_actuator topic */
@@ -467,12 +475,26 @@ Delivery::advance_delivery()
 void
 Delivery::load_package()
 {
+	//initialize uORB for gripper
+	_servo_sub = orb_subscribe(ORB_ID(turn_servo));
+	pub_gripper = orb_advertise(ORB_ID(turn_servo), &gripper);
+	gripper.open = false;
+	orb_copy(ORB_ID(turn_servo), _servo_sub, &gripper);
+	close(pub_gripper);
+	close(_servo_sub);
 	//servo_ctl_pos2();
 }
 
 void
 Delivery::unload_package()
 {
+	//initialize uORB for gripper
+	_servo_sub = orb_subscribe(ORB_ID(turn_servo));
+	pub_gripper = orb_advertise(ORB_ID(turn_servo), &gripper);
+	gripper.open = true;
+	orb_copy(ORB_ID(turn_servo), _servo_sub, &gripper);
+	close(pub_gripper);
+	close(_servo_sub);
 	 //servo_ctl_pos1();
 }
 

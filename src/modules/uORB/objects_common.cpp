@@ -74,6 +74,9 @@ ORB_DEFINE(adc_prox, struct adc_prox_s);
 #include "topics/test_uorb.h"
 ORB_DEFINE(test_uorb, struct test_uorb_s);
 
+#include "topics/turn_servo.h"
+ORB_DEFINE(turn_servo, struct turn_servo_s);
+
 #include "topics/vehicle_attitude.h"
 ORB_DEFINE(vehicle_attitude, struct vehicle_attitude_s);
 

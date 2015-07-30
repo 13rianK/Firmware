@@ -57,6 +57,7 @@
 #include <uORB/topics/safety.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/turn_servo.h>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -157,8 +158,11 @@ private:
 	bool _first_run;
 	float _drop_alt;
 	int _armed_sub;
+	int _servo_sub;
 	// int _cancel_subs;
 	struct actuator_armed_s _actuator_armed;
+	struct turn_servo_s gripper;
+	orb_advert_t pub_gripper;
 	// orb_advert_t _armed_adv;
 	// struct safety_s safety;
 	// struct vehicle_status_s status;
