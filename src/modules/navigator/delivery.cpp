@@ -83,6 +83,8 @@ Delivery::Delivery(Navigator *navigator, const char *name) :
 	_drop_alt(5.0),
 	_armed_sub(0),
 	_actuator_armed(),
+	gripper(),
+	pub_gripper(),
 	//servo_ctl_data(),
 	// safety({0}),
 	// status({0}),
@@ -174,6 +176,8 @@ Delivery::on_activation()
 	// change delivery_status to initial state
 	// check conditions and acquire needed GPS info
 	delivery_status = DELIV_PREFLIGHT;
+
+	memset(&gripper, 0 ,sizeof(gripper));
 
 	load_package();
 
