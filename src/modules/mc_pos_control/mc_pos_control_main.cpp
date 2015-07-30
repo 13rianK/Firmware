@@ -629,7 +629,7 @@ MulticopterPositionControl::control_manual(float dt)
 {
 	_sp_move_rate.zero();
   //  _mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-    if (_control_mode.flag_control_altitude_enabled&&!isInAdcMode) {
+    if (_control_mode.flag_control_altitude_enabled/*&&!isInAdcMode*/) {
 		/* move altitude setpoint with throttle stick */
         _sp_move_rate(2) = -scale_control(_manual.z - 0.5f, 0.5f, alt_ctl_dz);
     //    mavlink_log_critical(_mavlink_fd,"into this damn place");

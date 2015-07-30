@@ -1038,15 +1038,15 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		manual.posctl_switch = decode_switch_pos(man.buttons, 2);
 		manual.loiter_switch = decode_switch_pos(man.buttons, 3);
 		manual.acro_switch = decode_switch_pos(man.buttons, 4);
-		manual.offboard_switch = decode_switch_pos(man.buttons, 5);
-        if(!isInAdcMode){
+        manual.offboard_switch = decode_switch_pos(man.buttons, 5);
+        //if(!isInAdcMode){
             if (_manual_pub < 0) {
                 _manual_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual);
 
             } else {
                 orb_publish(ORB_ID(manual_control_setpoint), _manual_pub, &manual);
             }
-        }
+        //}
 	}
 }
 

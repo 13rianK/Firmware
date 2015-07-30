@@ -33,13 +33,14 @@
 
 /**
  * @file commander.cpp
- * Main fail-safe handling.
+ * Main fail-safe handling. Barrier avoidance handling.
  *
  * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Thomas Gubler <thomas@px4.io>
  * @author Julian Oes <julian@px4.io>
  * @author Anton Babushkin <anton@px4.io>
+ * @author Gary Wen <gary9555@gmail.com>
  */
 
 #include <nuttx/config.h>
@@ -1021,10 +1022,10 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&_home, 0, sizeof(_home));
 
     /****************************************************************************************************************************/
-    //orb_advert_t mcs_pub = -1;
+    orb_advert_t mcs_pub = -1;
     memset(&mcs, 0, sizeof(mcs));
 
-    orb_advert_t vas_pub = -1;
+  //  orb_advert_t vas_pub = -1;
     memset(&vas, 0, sizeof(vas));
     /****************************************************************************************************************************/
 
@@ -2178,8 +2179,9 @@ int commander_thread_main(int argc, char *argv[])
                 // mavlink_log_critical(mavlink_fd, "Distance: %.4f   return value: %d ",adc_prox.data,shuai);
                 if(shuai==1){
                     main_state_changed = true;
+                    isInAdcMode = true;
                 }
-                isInAdcMode = true;
+                //isInAdcMode = true;
                 // printf("counting %d", timecnt);
                 // timecnt=0;
             }
@@ -2214,17 +2216,19 @@ int commander_thread_main(int argc, char *argv[])
 			mavlink_log_info(mavlink_fd, "Flight mode: %s", nav_states_str[status.nav_state]);
 			main_state_changed = false;
 		}
-        if(isInAdcMode){
-          /*  mcs.x = 0;
-            mcs.y = 0.8;
-            mcs.z = 0;
+
+
+  /*      if(isInAdcMode){
+            mcs.x = 0;
+            mcs.y = 0;
+            mcs.z = 0.8;
             mcs.r = 0;
             mcs.timestamp = now;
             if(mcs_pub < 0)
                 mcs_pub = orb_advertise(ORB_ID(manual_control_setpoint), &mcs);
             else
                 orb_publish(ORB_ID(manual_control_setpoint), mcs_pub, &mcs);
-        */
+
             vas.thrust = 0.8;
             vas.timestamp = now;
             if(vas_pub < 0)
@@ -2232,6 +2236,8 @@ int commander_thread_main(int argc, char *argv[])
             else
                 orb_publish(ORB_ID(vehicle_attitude_setpoint), vas_pub, &vas);
         }
+*/
+
 		/* publish states (armed, control mode, vehicle status) at least with 5 Hz */
 		if (counter % (200000 / COMMANDER_MONITORING_INTERVAL) == 0 || status_changed) {
 
@@ -2241,7 +2247,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			status.timestamp = now;
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
-/*
+
             if(isInAdcMode){
                 mcs.x = 0;
                 mcs.y = 0;
@@ -2253,7 +2259,7 @@ int commander_thread_main(int argc, char *argv[])
                 else
                     orb_publish(ORB_ID(manual_control_setpoint), mcs_pub, &mcs);
             }
-*/
+
 			armed.timestamp = now;
 
 			/* set prearmed state if safety is off, or safety is not present and 5 seconds passed */
