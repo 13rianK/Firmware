@@ -553,7 +553,19 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
                         main_ret = TRANSITION_DENIED;
                         mavlink_log_critical(mavlink_fd, "Auto Mode Set Command parameter error");
                     */
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ACRO) {
+                } else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO_LOITER) {
+                    /* AUTO_LOITER */
+                    main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_LOITER);
+
+                } else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO_RTL) {
+                    /* AUTO_RTL */
+                    main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_AUTO_RTL);
+
+                } else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO_DELIVERY) {
+                    /* AUTO_DELIVERY */
+                    main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_DELIVERY);
+                    mavlink_log_critical(mavlink_fd, "Try Delivery mode");
+                } else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ACRO) {
 					/* ACRO */
 					main_ret = main_state_transition(status_local, vehicle_status_s::MAIN_STATE_ACRO);
 
@@ -2164,7 +2176,7 @@ int commander_thread_main(int argc, char *argv[])
             int data=adc_prox.data;
            // mavlink_log_critical(mavlink_fd, "Distance: %.4f",adc_prox.data);
 
-            if(data < 50 && data>19){
+            if(data < 200 && data>19){
                 timecnt++;
             }
             else{
@@ -2179,9 +2191,9 @@ int commander_thread_main(int argc, char *argv[])
                 // mavlink_log_critical(mavlink_fd, "Distance: %.4f   return value: %d ",adc_prox.data,shuai);
                 if(shuai==1){
                     main_state_changed = true;
-                    isInAdcMode = true;
+                    //isInAdcMode = true;
                 }
-                //isInAdcMode = true;
+                isInAdcMode = true;
                 // printf("counting %d", timecnt);
                 // timecnt=0;
             }
@@ -2249,9 +2261,10 @@ int commander_thread_main(int argc, char *argv[])
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
 
             if(isInAdcMode){
+             //   mavlink_log_critical(mavlink_fd,"Is in");
                 mcs.x = 0;
                 mcs.y = 0;
-                mcs.z = 600;
+                mcs.z = 0.8;
                 mcs.r = 0;
                 mcs.timestamp = now;
                 if(mcs_pub < 0)
@@ -2259,6 +2272,9 @@ int commander_thread_main(int argc, char *argv[])
                 else
                     orb_publish(ORB_ID(manual_control_setpoint), mcs_pub, &mcs);
             }
+            //else{
+              //  mavlink_log_critical(mavlink_fd,"Not in !!");
+            //}
 
 			armed.timestamp = now;
 

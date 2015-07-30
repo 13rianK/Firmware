@@ -327,7 +327,7 @@ Delivery::return_home()
 void
 Delivery::shutoff()
 {
-	Disarm the drone when it is done with the landing
+    //Disarm the drone when it is done with the landing
 	if (_rtl_state == RTL_STATE_LANDED) {
 		if (_navigator->get_vstatus()->condition_landed) {
 		    /* Subscribe to armed_actuator topic */
