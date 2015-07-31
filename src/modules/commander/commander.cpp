@@ -198,10 +198,12 @@ static struct home_position_s _home;
 /**************************************************************************************************************/
 static struct manual_control_setpoint_s mcs;
 static struct vehicle_attitude_setpoint_s vas;
+static int timecnt=0;
+static bool adcFailSafe = false;
 /**************************************************************************************************************/
 static unsigned _last_mission_instance = 0;
 
-static int timecnt=0; // To count the times the adc value has gone below threshold
+ // To count the times the adc value has gone below threshold
 
 
 //bool isInAdcMode = false;
@@ -1366,7 +1368,14 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
+
 		}
+        if(sp_man.offboard_switch == manual_control_setpoint_s::SWITCH_POS_ON)
+            adcFailSafe = false;
+        else
+            adcFailSafe = true;
+
+
 
 		orb_check(offboard_control_mode_sub, &updated);
 
@@ -2170,6 +2179,7 @@ int commander_thread_main(int argc, char *argv[])
         /* Make sure the drone avoids barriers in whatever mode */
 
    //     if(status.main_state==vehicle_status_s::MAIN_STATE_MANUAL){
+        if(!adcFailSafe){
             orb_check(adc_prox_sub, &updated);
             if(updated){
                 orb_copy(ORB_ID(adc_prox), adc_prox_sub, &adc_prox);
@@ -2177,7 +2187,7 @@ int commander_thread_main(int argc, char *argv[])
             int data=adc_prox.data;
            // mavlink_log_critical(mavlink_fd, "Distance: %.4f",adc_prox.data);
 
-            if(data < PROX_THRESHOLD && data>19){
+            if(data < PROX_THRESHOLD && data>19){  //if proximity sensor value ranges within threshold value
                 timecnt++;
             }
             else{
@@ -2186,7 +2196,9 @@ int commander_thread_main(int argc, char *argv[])
             }
             if(timecnt>1){
                  //int shuai=main_state_transition(&status,vehicle_status_s::MAIN_STATE_AUTO_LOITER);
-                int shuai = main_state_transition(&status,vehicle_status_s::MAIN_STATE_POSCTL);
+               // int shuai = main_state_transition(&status,vehicle_status_s::MAIN_STATE_POSCTL);
+              //  if(shuai == -1)
+                 int shuai = main_state_transition(&status,vehicle_status_s::MAIN_STATE_ALTCTL);
                 //int shuai=main_state_transition(&status,vehicle_status_s::MAIN_STATE_POSCTL);
 
                 // mavlink_log_critical(mavlink_fd, "Distance: %.4f   return value: %d ",adc_prox.data,shuai);
@@ -2198,7 +2210,7 @@ int commander_thread_main(int argc, char *argv[])
                 // printf("counting %d", timecnt);
                 // timecnt=0;
             }
-
+        }
 
      //   }
 
@@ -2261,14 +2273,16 @@ int commander_thread_main(int argc, char *argv[])
 			status.timestamp = now;
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
 
-
+            //failsafe for getting back into human control
+            if(adcFailSafe)
+                isInAdcMode = false;
 
             // ascend when proximity sensor ranges within the threshold
             if(isInAdcMode){
              //   mavlink_log_critical(mavlink_fd,"Is in");
                 mcs.x = 0;
                 mcs.y = 0;
-                mcs.z = 1;  //set throttle to full position
+                mcs.z = 0.9;  //set throttle to full position
                 mcs.r = 0;
                 mcs.timestamp = now;
                 if(mcs_pub < 0)
@@ -2499,18 +2513,18 @@ set_main_state_rc(struct vehicle_status_s *status_local, struct manual_control_s
 	}
 
 	/* offboard switch overrides main switch */
-	if (sp_man->offboard_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+    /*if (sp_man->offboard_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 		res = main_state_transition(status_local,vehicle_status_s::MAIN_STATE_OFFBOARD);
 
 		if (res == TRANSITION_DENIED) {
 			print_reject_mode(status_local, "OFFBOARD");
-			/* mode rejected, continue to evaluate the main system mode */
+            // mode rejected, continue to evaluate the main system mode
 
 		} else {
-			/* changed successfully or already in this state */
+            // changed successfully or already in this state
 			return res;
 		}
-	}
+    }*/
 
 	/* RTL switch overrides main switch */
 	if (sp_man->return_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
