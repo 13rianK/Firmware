@@ -2196,9 +2196,9 @@ int commander_thread_main(int argc, char *argv[])
             }
             if(timecnt>1){
                  //int shuai=main_state_transition(&status,vehicle_status_s::MAIN_STATE_AUTO_LOITER);
-               // int shuai = main_state_transition(&status,vehicle_status_s::MAIN_STATE_POSCTL);
-              //  if(shuai == -1)
-                 int shuai = main_state_transition(&status,vehicle_status_s::MAIN_STATE_ALTCTL);
+                int shuai = main_state_transition(&status,vehicle_status_s::MAIN_STATE_POSCTL);
+                if(shuai == -1)
+                    shuai = main_state_transition(&status,vehicle_status_s::MAIN_STATE_ALTCTL);
                 //int shuai=main_state_transition(&status,vehicle_status_s::MAIN_STATE_POSCTL);
 
                 // mavlink_log_critical(mavlink_fd, "Distance: %.4f   return value: %d ",adc_prox.data,shuai);
