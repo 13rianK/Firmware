@@ -84,8 +84,8 @@ Delivery::Delivery(Navigator *navigator, const char *name) :
 	_armed_sub(0),
 	_servo_sub(0),
 	_actuator_armed(),
-	gripper(),
-	pub_gripper(),
+    gripper(),
+    pub_gripper(),
 	////////////////////////////////
 	_param_onboard_enabled(this, "DEL_ONBOARD_EN", false),
 	_param_takeoff_alt(this, "DEL_TAKEOFF_ALT", false),
@@ -113,7 +113,7 @@ Delivery::Delivery(Navigator *navigator, const char *name) :
 	_param_land_delay(this, "DEL_LAND_DELAY", false)
 {
 	/* load initial params */
-	updateParams();
+    updateParams();
 }
 
 Delivery::~Delivery()
@@ -466,7 +466,7 @@ void
 Delivery::unload_package()
 {
 	//initialize uORB for gripper
-	_servo_sub = orb_subscribe(ORB_ID(turn_servo));
+    _servo_sub = orb_subscribe(ORB_ID(turn_servo));
 	pub_gripper = orb_advertise(ORB_ID(turn_servo), &gripper);
 	gripper.open = true;
 	orb_publish(ORB_ID(turn_servo), _servo_sub, &gripper);

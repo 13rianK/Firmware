@@ -153,6 +153,7 @@ static constexpr uint8_t COMMANDER_MAX_GPS_NOISE = 60;		/**< Maximum percentage 
 
 #define HIL_ID_MIN 1000
 #define HIL_ID_MAX 1999
+#define PROX_THRESHOLD    250
 
 enum MAV_MODE_FLAG {
 	MAV_MODE_FLAG_CUSTOM_MODE_ENABLED = 1, /* 0b00000001 Reserved for future use. | */
@@ -2127,7 +2128,7 @@ int commander_thread_main(int argc, char *argv[])
 			     status.main_state ==vehicle_status_s::MAIN_STATE_POSCTL) &&
 			    ((status.rc_signal_lost && status.gps_failure) ||
 			     (status.rc_signal_lost_cmd && status.gps_failure_cmd))) {
-				armed.force_failsafe = true;
+                armed.force_failsafe = true;
 				status_changed = true;
 				static bool flight_termination_printed = false;
 
@@ -2176,7 +2177,7 @@ int commander_thread_main(int argc, char *argv[])
             int data=adc_prox.data;
            // mavlink_log_critical(mavlink_fd, "Distance: %.4f",adc_prox.data);
 
-            if(data < 200 && data>19){
+            if(data < PROX_THRESHOLD && data>19){
                 timecnt++;
             }
             else{
@@ -2185,7 +2186,7 @@ int commander_thread_main(int argc, char *argv[])
             }
             if(timecnt>1){
                  //int shuai=main_state_transition(&status,vehicle_status_s::MAIN_STATE_AUTO_LOITER);
-                int shuai = main_state_transition(&status,vehicle_status_s::MAIN_STATE_ALTCTL);
+                int shuai = main_state_transition(&status,vehicle_status_s::MAIN_STATE_POSCTL);
                 //int shuai=main_state_transition(&status,vehicle_status_s::MAIN_STATE_POSCTL);
 
                 // mavlink_log_critical(mavlink_fd, "Distance: %.4f   return value: %d ",adc_prox.data,shuai);
@@ -2260,11 +2261,14 @@ int commander_thread_main(int argc, char *argv[])
 			status.timestamp = now;
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
 
+
+
+            // ascend when proximity sensor ranges within the threshold
             if(isInAdcMode){
              //   mavlink_log_critical(mavlink_fd,"Is in");
                 mcs.x = 0;
                 mcs.y = 0;
-                mcs.z = 0.8;
+                mcs.z = 1;  //set throttle to full position
                 mcs.r = 0;
                 mcs.timestamp = now;
                 if(mcs_pub < 0)
