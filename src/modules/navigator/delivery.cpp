@@ -80,7 +80,7 @@ Delivery::Delivery(Navigator *navigator, const char *name) :
 	_count(0),
 	_complete(false),
 	_first_run(false),
-	_drop_alt(5.0),
+	_drop_alt(3.0),
 	_armed_sub(0),
 	_servo_sub(0),
 	_actuator_armed(),
@@ -319,6 +319,13 @@ Delivery::return_home()
 		set_rtl_item();
 	}
 
+	if (_rtl_state == RTL_STATE_LAND) {
+		_count++;
+		if (_count >= 3000) {
+			advance_rtl();
+		}
+	}
+
 	if (_rtl_state == RTL_STATE_LANDED) {
 		// Update Status now that return is complete
 		advance_delivery();
@@ -333,19 +340,17 @@ Delivery::shutoff()
 
 //>>>>>> 737fb5bab94cf81588d5d30de346d2fda635490c
 	if (_rtl_state == RTL_STATE_LANDED) {
-		if (_navigator->get_vstatus()->condition_landed) {
-		    /* Subscribe to armed_actuator topic */
-		    _armed_sub=orb_subscribe(ORB_ID(actuator_armed));
-		    memset(&_actuator_armed, 0 ,sizeof(_actuator_armed));
+	    /* Subscribe to armed_actuator topic */
+	    _armed_sub=orb_subscribe(ORB_ID(actuator_armed));
+	    memset(&_actuator_armed, 0 ,sizeof(_actuator_armed));
 
-		    _actuator_armed.armed = false;
+	    _actuator_armed.armed = false;
 
-		    orb_publish(ORB_ID(actuator_armed), _armed_sub, &_actuator_armed);
+	    orb_publish(ORB_ID(actuator_armed), _armed_sub, &_actuator_armed);
 
-		    close(_armed_sub);
+	    close(_armed_sub);
 
-		    mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk is Disarmed");
-		}	
+	    mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk is Disarmed");
 	}
 
 	// Update status now that the copter is disarmed
