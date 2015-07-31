@@ -86,10 +86,6 @@ Delivery::Delivery(Navigator *navigator, const char *name) :
 	_actuator_armed(),
 	gripper(),
 	pub_gripper(),
-	//servo_ctl_data(),
-	// safety({0}),
-	// status({0}),
-	// armed({0}),
 	////////////////////////////////
 	_param_onboard_enabled(this, "DEL_ONBOARD_EN", false),
 	_param_takeoff_alt(this, "DEL_TAKEOFF_ALT", false),
@@ -290,10 +286,10 @@ Delivery::activate_gripper()
 	// the code for descent can be found in set_delivery_items
 
 	// keep descending until _drop_alt reached
-	if (is_mission_item_reached() || _count >= 400) {
+	if (is_mission_item_reached() || _count >= 3000) {
 		_complete = true;
 		_navigator->set_can_loiter_at_sp(true);
-		if (_count >= 400) {
+		if (_count >= 3000) {
 			mavlink_log_critical(_navigator->get_mavlink_fd(), "Descent time has been exceeded");
 		}
 	}
@@ -301,7 +297,7 @@ Delivery::activate_gripper()
 	if (_complete) {
 		//Drop the item by activating the servo
 		unload_package();
-		mavlink_log_critical(_navigator->get_mavlink_fd(), "Payload has been delivered");
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "Blackhawk has dumped");
 
 		// Update status now that dropoff is complete and reset _first_run for next stage
 		_first_run = true;
@@ -344,11 +340,11 @@ Delivery::shutoff()
 
 		    _actuator_armed.armed = false;
 
-		    orb_copy(ORB_ID(actuator_armed), _armed_sub, &_actuator_armed);
+		    orb_publish(ORB_ID(actuator_armed), _armed_sub, &_actuator_armed);
 
 		    close(_armed_sub);
 
-		    mavlink_log_critical(_navigator->get_mavlink_fd(), "Quadcopter is Disarmed");
+		    mavlink_log_critical(_navigator->get_mavlink_fd(), "Black Hawk is Disarmed");
 		}	
 	}
 
@@ -430,25 +426,6 @@ Delivery::set_delivery_items()
 }
 
 void
-Delivery::arm_disarm(bool arm, const int mavlink_fd_local, const char *armedBy)
-{
-	// transition_result_t arming_res = TRANSITION_NOT_CHANGED;
-
-	// // // Transition the armed state. By passing mavlink_fd to arming_state_transition it will
-	// // // output appropriate error messages if the state cannot transition.
-	// arming_res = arming_state_transition(&status, &safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
-	// 				     false , mavlink_fd_local);
-
-	// if (arming_res == TRANSITION_CHANGED && mavlink_fd) {
-	// 	mavlink_log_info(mavlink_fd_local, "[cmd] %s by %s", arm ? "ARMED" : "DISARMED", armedBy);
-
-	// } else if (arming_res == TRANSITION_DENIED) {
-	// 	tune_negative(true);
-	// 	mavlink_log_critical(mavlink_fd, "Cannot Disarm");
-	// }
-}
-
-void
 Delivery::advance_delivery()
 {
 	switch(delivery_status) {
@@ -479,7 +456,7 @@ Delivery::load_package()
 	_servo_sub = orb_subscribe(ORB_ID(turn_servo));
 	pub_gripper = orb_advertise(ORB_ID(turn_servo), &gripper);
 	gripper.open = false;
-	orb_copy(ORB_ID(turn_servo), _servo_sub, &gripper);
+	orb_publish(ORB_ID(turn_servo), _servo_sub, &gripper);
 	close(pub_gripper);
 	close(_servo_sub);
 	//servo_ctl_pos2();
@@ -492,7 +469,7 @@ Delivery::unload_package()
 	_servo_sub = orb_subscribe(ORB_ID(turn_servo));
 	pub_gripper = orb_advertise(ORB_ID(turn_servo), &gripper);
 	gripper.open = true;
-	orb_copy(ORB_ID(turn_servo), _servo_sub, &gripper);
+	orb_publish(ORB_ID(turn_servo), _servo_sub, &gripper);
 	close(pub_gripper);
 	close(_servo_sub);
 	 //servo_ctl_pos1();
@@ -1310,13 +1287,7 @@ Delivery::advance_rtl()
 		break;
 
 	case RTL_STATE_DESCEND:
-		/* only go to land if autoland is enabled */
-		if (_param_land_delay.get() < -DELAY_SIGMA || _param_land_delay.get() > DELAY_SIGMA) {
-			_rtl_state = RTL_STATE_LOITER;
-
-		} else {
 			_rtl_state = RTL_STATE_LAND;
-		}
 		break;
 
 	case RTL_STATE_LOITER:
