@@ -92,6 +92,8 @@ void servo_ctl_sub(void);
 
 int servo_ctl_main(int argc, char *argv[])
 {
+	servo_ctl_sub_init();
+	servo_ctl_sub();
 	if (argc < 2) {
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
