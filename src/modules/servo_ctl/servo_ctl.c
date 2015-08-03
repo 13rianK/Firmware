@@ -71,6 +71,10 @@ bool use_io;
 bool updated;
 int pin;
 
+static bool thread_should_exit = false;		/**< daemon exit flag */
+static bool thread_running = false;		/**< daemon status flag */
+static int daemon_task;				/**< Handle of daemon task / thread */
+
 int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 int		_pwm_alt_rate_channels;
 int 	_pwm_default_rate;
@@ -90,10 +94,10 @@ void servo_ctl_sub_init(void);
 
 void servo_ctl_sub(void);
 
+int servo_ctl_daemon_thread_main(int argc, char *argv[]);
+
 int servo_ctl_main(int argc, char *argv[])
 {
-	servo_ctl_sub_init();
-	servo_ctl_sub();
 	if (argc < 2) {
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
@@ -143,19 +147,17 @@ int servo_ctl_main(int argc, char *argv[])
 			memset(servo_ctl_data, 0, sizeof(struct servo_ctl_s));
 			servo_ctl_data->use_io = use_io;
 			servo_ctl_data->pin = pin;
-			//int ret = work_queue(LPWORK, &servo_ctl_data->work, servo_ctl_pos1, servo_ctl_data, 0);
 			servo_ctl_pos1();
-
-			/*if (ret != 0) {
-				errx(1, "failed to queue work: %d", ret);
-
-			} else {
-				servo_ctl_pos = 1;
-				warnx("start, using pin: %s", pin_name);
-				exit(0);
-			}*/
 			servo_ctl_pos = 1;
 			warnx("pos1, using pin: %s", pin_name);
+
+			thread_should_exit = false;
+			daemon_task = task_spawn_cmd("servo_daemon",
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_DEFAULT,
+					     2000,
+					     servo_ctl_daemon_thread_main,
+					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 			exit(0);
 
 		} else if (!strcmp(argv[1], "pos2")) {
@@ -165,17 +167,15 @@ int servo_ctl_main(int argc, char *argv[])
 			use_io = false;
 			pin = 1;
 			servo_ctl_pos2();
-/*
-			if (ret != 0) {
-				errx(1, "failed to queue work: %d", ret);
-
-			} else {
-				servo_ctl_pos = 2;
-				warnx("start, using pin: %d", pin);
-				exit(0);
-			}*/
 			servo_ctl_pos = 2;
 			warnx("pos2, using pin: %d", pin);
+			thread_should_exit = false;
+			daemon_task = task_spawn_cmd("servo_daemon",
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_DEFAULT,
+					     2000,
+					     servo_ctl_daemon_thread_main,
+					     (argv) ? (char * const *)&argv[2] : (char * const *)NULL);
 			exit(0);
 
 		} else if (!strcmp(argv[1], "stop")) {
@@ -190,6 +190,9 @@ int servo_ctl_main(int argc, char *argv[])
 				servo_ctl_data->use_io = use_io;
 				servo_ctl_data->pin = pin;
 				servo_ctl_stop(servo_ctl_data);
+
+				thread_should_exit = true;
+
 				exit(0);
 
 			} else {
@@ -201,6 +204,21 @@ int servo_ctl_main(int argc, char *argv[])
 		}
 	}
 }
+
+int servo_ctl_daemon_thread_main(int argc, char *argv[])
+{
+	thread_running = true;
+	servo_ctl_sub_init();
+
+	while(!thread_should_exit){
+		servo_ctl_sub();
+		sleep(50);
+	}
+
+	thread_running = false;
+	return 0;
+}
+
 
 void servo_ctl_pos1()
 {
