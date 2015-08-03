@@ -346,7 +346,10 @@ Delivery::shutoff()
 
 	    _actuator_armed.armed = false;
 
-	    orb_publish(ORB_ID(actuator_armed), _armed_sub, &_actuator_armed);
+	    int stop = orb_publish(ORB_ID(actuator_armed), _armed_sub, &_actuator_armed);
+	    if (stop == OK){
+			mavlink_log_critical(_navigator->get_mavlink_fd(), "Publishing Disarm");
+		}
 
 	    close(_armed_sub);
 
@@ -461,7 +464,10 @@ Delivery::load_package()
 	_servo_sub = orb_subscribe(ORB_ID(turn_servo));
 	pub_gripper = orb_advertise(ORB_ID(turn_servo), &gripper);
 	gripper.open = false;
-	orb_publish(ORB_ID(turn_servo), _servo_sub, &gripper);
+	int win = orb_publish(ORB_ID(turn_servo), _servo_sub, &gripper);
+	if (win == OK){
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "Publishing Gripper");
+	}
 	close(pub_gripper);
 	close(_servo_sub);
 	//servo_ctl_pos2();
@@ -474,7 +480,10 @@ Delivery::unload_package()
     _servo_sub = orb_subscribe(ORB_ID(turn_servo));
 	pub_gripper = orb_advertise(ORB_ID(turn_servo), &gripper);
 	gripper.open = true;
-	orb_publish(ORB_ID(turn_servo), _servo_sub, &gripper);
+	int win = orb_publish(ORB_ID(turn_servo), _servo_sub, &gripper);
+	if (win == OK){
+		mavlink_log_critical(_navigator->get_mavlink_fd(), "Publishing Gripper");
+	}
 	close(pub_gripper);
 	close(_servo_sub);
 	 //servo_ctl_pos1();
